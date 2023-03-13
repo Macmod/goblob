@@ -26,15 +26,15 @@ By default, the tool will use a list of common Azure Blob Storage container name
 $ ./goblob example.com -accounts accounts.txt -containers wordlists/goblob-folder-names.txt
 ```
 
-The tool also supports outputting the results to a file using the `--output` option:
+The tool also supports outputting the results to a file using the `-output` option:
 ```bash
 $ ./goblob example.com -output results.txt
 ```
 
 ## Optional Flags
-- `--goroutines` - Maximum number of concurrent goroutines to allow (default: `5000`).
-- `--blobs=true` - Report the URL of each blob instead of the URL of the containers (default: `false`).
-- `--verbose=N` - Set verbosity level (default: `1`, min: `0`, max: `3`).
+- `-goroutines=N` - Maximum number of concurrent goroutines to allow (default: `5000`).
+- `-blobs=true` - Report the URL of each blob instead of the URL of the containers (default: `false`).
+- `-verbose=N` - Set verbosity level (default: `1`, min: `0`, max: `3`).
 
 ## Example
 
@@ -45,7 +45,7 @@ Contributions are welcome by [opening an issue](https://github.com/Macmod/goblob
 
 # TODO
 * Improve project structure
-* Check blob domain for NXDOMAIN before trying wordlist
+* Check blob domain for NXDOMAIN before trying wordlist to save bandwidth
 
 # License
 The MIT License (MIT)
