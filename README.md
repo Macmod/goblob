@@ -2,6 +2,8 @@
 
 Goblob is a lightweight and fast enumeration tool designed to aid in the discovery of sensitive information exposed publicy in Azure blobs, which can be useful for various research purposes such as vulnerability assessments, penetration testing, and reconnaissance.
 
+*Warning*. Goblob will issue individual goroutines for each container name to check in each storage account, only limited by the maximum number of concurrent goroutines specified in the `-goroutines` flag. This implementation can exhaust bandwidth & memory pretty quickly in most cases with the default wordlist, or potentially cost you a lot of money if you're using the tool in a cloud environment. Make sure you understand what you are doing before running the tool.
+
 # Installation
 `go install github.com/Macmod/goblob@latest`
 
@@ -15,7 +17,7 @@ $ ./goblob <storageaccountname>
 
 Where `<target>` is the target storage account name to enumerate public Azure blob storage URLs on.
 
-You can also specify a list of storage account names:
+You can also specify a list of storage account names to check:
 ```bash
 $ ./goblob -accounts accounts.txt
 ```
@@ -30,6 +32,13 @@ The tool also supports outputting the results to a file using the `-output` opti
 ```bash
 $ ./goblob -accounts accounts.txt -containers wordlists/goblob-folder-names.txt -output results.txt
 ```
+
+## Wordlists
+
+Goblob comes bundled with two basic wordlists that can be used with the `-containers` option:
+
+- [wordlists/goblob-folder-names.txt](wordlists/goblob-folder-names.txt) (default) - Adaptation from xajkep's [directory_only_one.small.txt](https://github.com/xajkep/wordlists/blob/master/discovery/directory_only_one.small.txt) - a wordlist containing generic folder names that are likely to be used as container names.
+- [wordlists/goblob-folder-names.small.txt](wordlists/goblob-folder-names.small.txt) - Subset of the default wordlist containing only words that have been found as container names in a real experiment with over 35k distinct storage accounts + words from the default wordlist that are part of the NLTK corpus.
 
 ## Optional Flags
 - `-goroutines=N` - Maximum number of concurrent goroutines to allow (default: `5000`).
@@ -47,6 +56,8 @@ Contributions are welcome by [opening an issue](https://github.com/Macmod/goblob
 * Improve project structure
 * Check blob domain for NXDOMAIN before trying wordlist to save bandwidth
 * Remove `.blob.core.windows.net` automatically from input
+* Show partial results if it receives a `SIGQUIT`, `SIGTERM` or `SIGINT` signal
+* Sort results by # of files before showing
 
 # License
 The MIT License (MIT)

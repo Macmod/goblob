@@ -187,6 +187,7 @@ func main() {
 							fmt.Printf("%s[-] Error while fetching URL: '%s'%s\n", Red, err, Reset)
 						}
 					} else {
+						statusCode = resp.StatusCode
 						defer resp.Body.Close()
 
 						resBody, err := ioutil.ReadAll(resp.Body)
