@@ -10,7 +10,7 @@ Goblob is a lightweight and fast enumeration tool designed to aid in the discove
 To use goblob simply run the following command:
 
 ```bash
-$ ./goblob <target>
+$ ./goblob <storageaccountname>
 ```
 
 Where `<target>` is the target storage account name to enumerate public Azure blob storage URLs on.
@@ -23,12 +23,12 @@ $ ./goblob -accounts accounts.txt
 By default, the tool will use a list of common Azure Blob Storage container names to construct potential URLs. However, you can also specify a custom list of container names using the `-containers` option. For example:
 
 ```bash
-$ ./goblob example.com -accounts accounts.txt -containers wordlists/goblob-folder-names.txt
+$ ./goblob -accounts accounts.txt -containers wordlists/goblob-folder-names.txt
 ```
 
 The tool also supports outputting the results to a file using the `-output` option:
 ```bash
-$ ./goblob example.com -output results.txt
+$ ./goblob -accounts accounts.txt -containers wordlists/goblob-folder-names.txt -output results.txt
 ```
 
 ## Optional Flags
@@ -46,6 +46,7 @@ Contributions are welcome by [opening an issue](https://github.com/Macmod/goblob
 # TODO
 * Improve project structure
 * Check blob domain for NXDOMAIN before trying wordlist to save bandwidth
+* Remove `.blob.core.windows.net` automatically from input
 
 # License
 The MIT License (MIT)
