@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"sort"
 	"strings"
 	"context"
 	"bufio"
@@ -10,6 +11,8 @@ import (
 	"io/ioutil"
 	"os"
 	"sync"
+	"os/signal"
+	"syscall"
 	"github.com/Macmod/goblob/utils"
 )
 
@@ -24,6 +27,11 @@ var REGEXP_NEXT_MARKER = regexp.MustCompile("<NextMarker>([^<]+)")
 type Message struct {
 	textToStdout string
 	textToFile string
+}
+
+type KeyValueTuple struct {
+	key string
+	value int
 }
 
 //var REGEX_ERROR_CODE = regexp.MustCompile("<Code>([^<]+)")
@@ -68,17 +76,27 @@ func main() {
 	var containers []string = utils.ReadLines(*containersFilename)
 
 	// Results report
-	resultEntities := make(map[string][]string)
+	resultEntities := make(map[string]int)
 
-	printResults := func(result *map[string][]string) {
-		fmt.Println("[+] Results:")
+	printResults := func(result *map[string]int) {
+		fmt.Printf("%s[+] Results:%s\n", Green, Reset)
 		if len(*result) != 0 {
 			numFiles := 0
-			for key, value := range *result {
-				fmt.Printf("[+] %s - %d files\n", key, len(value))
-				numFiles += len(value)
+
+			entries := make([]KeyValueTuple, 0, len(*result))
+			for k, v := range *result {
+				entries = append(entries, KeyValueTuple{k, v})
 			}
-	
+
+			sort.Slice(entries, func(i, j int) bool {
+				return entries[i].value > entries[j].value
+			})
+
+			for _, entry := range entries {
+				fmt.Printf("%s[+] %s - %d files%s\n", Green, entry.key, entry.value, Reset)
+				numFiles += entry.value
+			}
+
 			fmt.Printf(
 				"%s[+] Found a total of %d files across %d account(s)%s\n",
 				Green, numFiles, len(*result), Reset,
@@ -89,6 +107,16 @@ func main() {
 	}
 
 	if *verbose > 0 {
+		sigChannel := make(chan os.Signal, 1)	
+		signal.Notify(sigChannel, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP)
+
+		go func() {
+			sig := <-sigChannel
+			fmt.Printf("%s[-] Signal detected (%s). Printing partial results...%s\n", Red, sig, Reset)
+			printResults(&resultEntities)
+			os.Exit(1)
+		}()
+	
 		defer printResults(&resultEntities)
 	}
 
@@ -162,10 +190,7 @@ func main() {
 				}
 
 				blobURLs := utils.GetBlobURLs(resBody)
-				resultEntities[account] = append(
-					resultEntities[account],
-					blobURLs...
-				)
+				resultEntities[account] += len(blobURLs)
 
 				if *blobs {
 					for _, blobURL := range blobURLs {
@@ -198,10 +223,7 @@ func main() {
 							break
 						} else {
 							blobURLs := utils.GetBlobURLs(resBody)
-							resultEntities[account] = append(
-								resultEntities[account],
-								blobURLs...
-							)
+							resultEntities[account] += len(blobURLs)
 
 							if *blobs {
 								for _, blobURL := range blobURLs {
@@ -226,7 +248,7 @@ func main() {
 
 	// Main loop
 	for idx, account := range accounts {
-		account = strings.ToLower(account)
+		account = strings.Replace(strings.ToLower(account), ".blob.core.windows.net", "", -1)
 		if !utils.IsValidStorageAccountName(account) {
 			if *verbose > 0 {
 				fmt.Printf("[~][%d] Skipping invalid storage account name '%s'\n", idx, account)

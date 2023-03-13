@@ -55,9 +55,6 @@ Contributions are welcome by [opening an issue](https://github.com/Macmod/goblob
 # TODO
 * Improve project structure
 * Check blob domain for NXDOMAIN before trying wordlist to save bandwidth
-* Remove `.blob.core.windows.net` automatically from input
-* Show partial results if it receives a `SIGQUIT`, `SIGTERM` or `SIGINT` signal
-* Sort results by # of files before showing
 
 # License
 The MIT License (MIT)
