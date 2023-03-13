@@ -34,7 +34,7 @@ $ ./goblob example.com -output results.txt
 ## Optional Flags
 - `--goroutines` - Maximum number of concurrent goroutines to allow (default: `5000`).
 - `--blobs=true` - Report the URL of each blob, not just their containers (default: `false`).
-- `--verbose=true` - Enable verbose mode (default: `false`).
+- `--verbose=N` - Set verbosity level (default: `1`).
 
 ## Example
 

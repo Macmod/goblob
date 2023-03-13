@@ -38,7 +38,7 @@ func main() {
 		"accounts", "", "File with target Azure storage account names to check",
 	)
 	containersFilename := flag.String(
-		"containers", "wordlists/gosab-folder-names.txt",
+		"containers", "wordlists/goblob-folder-names.txt",
 		"Wordlist file with possible container names for Azure blob storage",
 	)
 	maxGoroutines := flag.Int(
@@ -49,7 +49,7 @@ func main() {
 		"output", "",
 		"Save found URLs to output file",
 	)
-	verbose := flag.Int("verbose", 0, "Verbosity level (default=0)")
+	verbose := flag.Int("verbose", 1, "Verbosity level (default=1")
 	blobs := flag.Bool(
 		"blobs", false,
 		"Show each blob URL in the results instead of their container URLs",
