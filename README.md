@@ -33,7 +33,7 @@ $ ./goblob example.com -output results.txt
 
 ## Optional Flags
 - `--goroutines` - Maximum number of concurrent goroutines to allow (default: `5000`).
-- `--blobs=true` - Report the URL of each blob, not just their containers (default: `false`).
+- `--blobs=true` - Report the URL of each blob instead of the URL of the containers (default: `false`).
 - `--verbose=N` - Set verbosity level (default: `1`, min: `0`, max: `3`).
 
 ## Example
@@ -45,6 +45,7 @@ Contributions are welcome by [opening an issue](https://github.com/Macmod/goblob
 
 # TODO
 * Improve project structure
+* Check blob domain for NXDOMAIN before trying wordlist
 
 # License
 The MIT License (MIT)
