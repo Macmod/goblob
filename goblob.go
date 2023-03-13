@@ -127,7 +127,7 @@ func main() {
 
 	var writer *bufio.Writer
 	if *output != "" {
-		output_file, _ := os.OpenFile(*output, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+		output_file, _ := os.OpenFile(*output, os.O_RDWR|os.O_CREATE, 0644)
 		defer output_file.Close()
 
 		writer = bufio.NewWriter(output_file)
