@@ -17,13 +17,15 @@ const (
 var Empty struct{}
 
 var REGEXP_ENTITY_URL = regexp.MustCompile(ENTITY_URL_PATTERN)
+var REGEXP_ENTITY = regexp.MustCompile(ENTITY_PATTERN)
+var REGEXP_ACCOUNT = regexp.MustCompile(ACCOUNT_PATTERN)
 
 func IsValidEntityName(entityName string) bool {
     if len(entityName) < 3 || len(entityName) > 63 {
         return false
     }
 
-    match, _ := regexp.MatchString(ENTITY_PATTERN, entityName)
+    match := REGEXP_ENTITY.MatchString(entityName)
 
     return match
 }
@@ -33,7 +35,7 @@ func IsValidStorageAccountName(name string) bool {
         return false
     }
 
-    match, _ := regexp.MatchString(ACCOUNT_PATTERN, name)
+    match := REGEXP_ACCOUNT.MatchString(name)
 
     return match
 }
