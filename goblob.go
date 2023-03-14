@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"context"
 	"bufio"
 	"regexp"
 	"io/ioutil"
 	"os"
 	"sync"
+	"net/http"
 	"os/signal"
 	"syscall"
 	"github.com/Macmod/goblob/utils"
@@ -79,7 +79,7 @@ func main() {
 	resultEntities := make(map[string]int)
 
 	printResults := func(result *map[string]int) {
-		fmt.Printf("%s[+] Results:%s\n", Green, Reset)
+		fmt.Printf("[+] Results:\n")
 		if len(*result) != 0 {
 			numFiles := 0
 
@@ -120,8 +120,7 @@ func main() {
 		defer printResults(&resultEntities)
 	}
 
-	// Requests context and synchronization stuff
-	ctx := context.Background()
+	// Synchronization stuff
 	semaphore := make(chan struct{}, *maxGoroutines)
 	var wg sync.WaitGroup
 
@@ -159,13 +158,18 @@ func main() {
 			wg.Done()
 		}()
 
+		var statusCode int
+		var resp *http.Response
+		var resBody []byte
+		var err error
+
 		containerURL := fmt.Sprintf(
 			"https://%s.blob.core.windows.net/%s?restype=container&comp=list&showonly=files",
 			account,
 			containerName,
 		)
 
-		resp, err := utils.Fetch(containerURL, ctx)
+		resp, err = utils.HttpClient.Get(containerURL)
 		if err != nil {
 			if *verbose > 1 {
 				fmt.Printf("%s[-] Error while fetching URL: '%s'%s\n", Red, err, Reset)
@@ -173,20 +177,21 @@ func main() {
 		} else {
 			defer resp.Body.Close()
 
-			resBody, err := ioutil.ReadAll(resp.Body)
-			if err != nil {
-				if *verbose > 1 {
-					fmt.Printf("%s[-] Error while reading response body: '%s'%s\n", Red, err, Reset)
-				}
-			}
-
-			statusCode := resp.StatusCode
+			statusCode = resp.StatusCode
 			if statusCode < 400 {
 				if !*blobs {
 					outputChannel <- Message{
-						fmt.Sprintf("%s[+][%d] %s%s\n", Green, statusCode, containerURL, Reset),
+						fmt.Sprintf("%s[+][C=%d] %s%s\n", Green, statusCode, containerURL, Reset),
 						containerURL,
 					}
+				}
+
+				resBody, err = ioutil.ReadAll(resp.Body)
+				if err != nil {
+					if *verbose > 1 {
+						fmt.Printf("%s[-] Error while reading response body: '%s'%s\n", Red, err, Reset)
+					}
+					return
 				}
 
 				blobURLs := utils.GetBlobURLs(resBody)
@@ -195,7 +200,7 @@ func main() {
 				if *blobs {
 					for _, blobURL := range blobURLs {
 						outputChannel <- Message{
-							fmt.Sprintf("%s[+][%d] %s%s\n", Green, statusCode, blobURL, Reset),
+							fmt.Sprintf("%s[+] %s%s\n", Green, blobURL, Reset),
 							blobURL,
 						}	
 					}
@@ -206,7 +211,7 @@ func main() {
 					markerCode := markerMatch[1]
 					containerURLWithMarker := fmt.Sprintf("%s&marker=%s", containerURL, markerCode)
 
-					resp, err := utils.Fetch(containerURLWithMarker, ctx)
+					resp, err = utils.HttpClient.Get(containerURLWithMarker)
 					if err != nil {
 						if *verbose > 1 {
 							fmt.Printf("%s[-] Error while fetching URL: '%s'%s\n", Red, err, Reset)
@@ -215,32 +220,32 @@ func main() {
 						statusCode = resp.StatusCode
 						defer resp.Body.Close()
 
-						resBody, err := ioutil.ReadAll(resp.Body)
+						resBody, err = ioutil.ReadAll(resp.Body)
 						if err != nil {
 							if *verbose > 1 {
 								fmt.Printf("%s[-] Error while reading response body: '%s'%s\n", Red, err, Reset)
 							}
 							break
-						} else {
-							blobURLs := utils.GetBlobURLs(resBody)
-							resultEntities[account] += len(blobURLs)
+						}
 
-							if *blobs {
-								for _, blobURL := range blobURLs {
-									outputChannel <- Message{
-										fmt.Sprintf("%s[+][%d] %s%s\n", Green, statusCode, blobURL, Reset),
-										blobURL,
-									}
+						blobURLs := utils.GetBlobURLs(resBody)
+						resultEntities[account] += len(blobURLs)
+
+						if *blobs {
+							for _, blobURL := range blobURLs {
+								outputChannel <- Message{
+									fmt.Sprintf("%s[+] %s%s\n", Green, blobURL, Reset),
+									blobURL,
 								}
 							}
-
-							markerMatch = REGEXP_NEXT_MARKER.FindSubmatch(resBody)
 						}
+
+						markerMatch = REGEXP_NEXT_MARKER.FindSubmatch(resBody)
 					}
 				}
 			} else {
 				if *verbose > 2 {
-					fmt.Printf("%s[+][%d] %s%s\n", Red, statusCode, containerURL, Reset)
+					fmt.Printf("%s[+][C=%d] %s%s\n", Red, statusCode, containerURL, Reset)
 				}
 			}
 		}

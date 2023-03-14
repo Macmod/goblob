@@ -6,28 +6,16 @@ import (
     "os"
     "bufio"
     "net/http"
-    "context"
 )
 
 const ENTITY_PATTERN = "^[a-zA-Z][a-zA-Z0-9-]*$"
 const ENTITY_URL_PATTERN = "<Url>([^<]+)"
 
 var REGEXP_ENTITY_URL = regexp.MustCompile(ENTITY_URL_PATTERN)
-
-func Fetch(url string, ctx context.Context) (*http.Response, error) {
-    req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-    
-    if err != nil {
-        return nil, err
-    }
-    
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    if err != nil {
-        return nil, err
-    }
-    
-    return resp, nil
+var HttpClient = &http.Client{
+    Transport: &http.Transport{
+        DisableKeepAlives: false,
+    },
 }
 
 func IsValidEntityName(entityName string) bool {
@@ -73,6 +61,7 @@ func GetBlobURLs(containerXML []byte) []string {
     
     return matches
 }
+
 func ReadLines(filename string) []string {
     var results []string
     
