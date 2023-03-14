@@ -52,7 +52,7 @@ func (e *EnumerationResults) BlobURLs() []string {
 
 func (e *EnumerationResults) TotalContentLength() int64 {
 	var contentLength int64 = 0
-	
+
 	for _, blob := range e.Blobs.Blob {
 		contentLength += blob.Properties.ContentLength
 	}

@@ -30,13 +30,14 @@ type Message struct {
 	textToFile   string
 }
 
-type ContainerResult struct {
+type AccountResult struct {
 	name string
 	stats ContainerStats
 }
 
 type ContainerStats struct {
-	numFiles int64
+	containerNames map[string]struct{}
+	numFiles int
 	contentLength int64
 }
 
@@ -105,11 +106,12 @@ func main() {
 	printResults := func(result *map[string]ContainerStats) {
 		fmt.Printf("[+] Results:\n")
 		if len(*result) != 0 {
-			var numFiles int64 = 0
+			var numFiles int = 0
+			var numContainers int = 0
 
-			entries := make([]ContainerResult, 0, len(*result))
-			for containerName, containerStats := range *result {
-				entries = append(entries, ContainerResult{containerName, containerStats})
+			entries := make([]AccountResult, 0, len(*result))
+			for accountName, containerStats := range *result {
+				entries = append(entries, AccountResult{accountName, containerStats})
 			}
 
 			sort.Slice(entries, func(i, j int) bool {
@@ -118,18 +120,21 @@ func main() {
 
 			for _, entry := range entries {
 				fmt.Printf(
-					"%s[+] %s - %d files (%s)%s\n",
+					"%s[+] %s - %d files in %d containers (%s)%s\n",
 					Green, entry.name,
-					entry.stats.numFiles, utils.FormatSize(entry.stats.contentLength),
+					entry.stats.numFiles,
+					len(entry.stats.containerNames),
+					utils.FormatSize(int64(entry.stats.contentLength)),
 					Reset,
 				)
 
+				numContainers += len(entry.stats.containerNames)
 				numFiles += entry.stats.numFiles
 			}
 
 			fmt.Printf(
-				"%s[+] Found a total of %d files across %d account(s)%s\n",
-				Green, numFiles, len(*result), Reset,
+				"%s[+] Found a total of %d files across %d account(s) and %d containers%s\n",
+				Green, numFiles, numContainers, len(*result), Reset,
 			)
 		} else {
 			fmt.Printf("%s[-] No files found.%s\n", Red, Reset)
@@ -205,7 +210,7 @@ func main() {
 		var err error
 
 		containerURL := fmt.Sprintf(
-			"https://%s.blob.core.windows.net/%s?restype=container&comp=list&showonly=files",
+			"https://%s.blob.core.windows.net/%s?restype=container",
 			account,
 			containerName,
 		)
@@ -227,36 +232,15 @@ func main() {
 					}
 				}
 
-				_, err = io.Copy(&resBuf, resp.Body)
-				if err != nil {
-					if *verbose > 1 {
-						fmt.Printf("%s[-] Error while reading response body: '%s'%s\n", Red, err, Reset)
-					}
-					return
-				}
-
-				resultsPage = new(container.EnumerationResults)
-				resultsPage.LoadXML(resBuf.Bytes())
-
-				blobURLs := resultsPage.BlobURLs()
-				resultEntities[account] = ContainerStats{
-					resultEntities[account].numFiles + int64(len(blobURLs)),
-					resultEntities[account].contentLength + resultsPage.TotalContentLength(),
-				}
-
-				if *blobs {
-					for _, blobURL := range blobURLs {
-						outputChannel <- Message{
-							fmt.Sprintf("%s[+] %s%s\n", Green, blobURL, Reset),
-							blobURL,
-						}
-					}
-				}
-
-				markerCode := resultsPage.NextMarker
+				markerCode := ""
 				page := 1
-				for markerCode != "" && (*maxpages == -1 || page < *maxpages) {
-					containerURLWithMarker := fmt.Sprintf("%s&marker=%s", containerURL, markerCode)
+				for page == 1 || (markerCode != "" && (*maxpages == -1 || page <= *maxpages)) {
+					var containerURLWithMarker string
+					if page == 1 {
+						containerURLWithMarker = fmt.Sprintf("%s&comp=list&showonly=files", containerURL)
+					} else {
+						containerURLWithMarker = fmt.Sprintf("%s&comp=list&showonly=files&marker=%s", containerURL, markerCode)
+					}
 
 					resp, err = httpClient.Get(containerURLWithMarker)
 					if err != nil {
@@ -280,9 +264,18 @@ func main() {
 							resultsPage.LoadXML(resBuf.Bytes())
 
 							blobURLs := resultsPage.BlobURLs()
-							resultEntities[account] = ContainerStats{
-								resultEntities[account].numFiles + int64(len(blobURLs)),
-								resultEntities[account].contentLength + resultsPage.TotalContentLength(),
+							if entity, ok := resultEntities[account]; ok {
+								entity.containerNames[containerName] = utils.Empty
+								entity.numFiles += len(blobURLs)
+								entity.contentLength += resultsPage.TotalContentLength()
+
+								resultEntities[account] = entity
+							} else {
+								resultEntities[account] = ContainerStats{
+									map[string]struct{}{containerName: utils.Empty},
+									len(blobURLs),
+									resultsPage.TotalContentLength(),
+								}
 							}
 
 							if *blobs {

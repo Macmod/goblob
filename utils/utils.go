@@ -14,6 +14,8 @@ const (
     ENTITY_URL_PATTERN = "<Url>([^<]+)"
 )
 
+var Empty struct{}
+
 var REGEXP_ENTITY_URL = regexp.MustCompile(ENTITY_URL_PATTERN)
 
 func IsValidEntityName(entityName string) bool {
