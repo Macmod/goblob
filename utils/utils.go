@@ -6,6 +6,7 @@ import (
     "os"
     "bufio"
     "net/http"
+    "math"
 )
 
 const (
@@ -76,4 +77,23 @@ func ReadLines(filename string) []string {
     }
     
     return results
+}
+
+func FormatSize(inputSize int64) string {
+    var size float64 = float64(inputSize)
+	var base float64 = 1024.0
+    var idx int
+
+	units := []string{"B", "KB", "MB", "GB", "TB", "PB"}
+	if size == 0 {
+		return "0 B"
+	}
+
+	idx = int(math.Floor(math.Log(size) / math.Log(base)))
+    if idx >= len(units) {
+        idx = len(units) - 1
+    }
+
+    unit := units[idx]
+	return fmt.Sprintf("%.1f %s", size/math.Pow(base, float64(idx)), unit)
 }

@@ -9,13 +9,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
 	"syscall"
 
 	"github.com/Macmod/goblob/utils"
+	"github.com/Macmod/goblob/xml"
 )
 
 const (
@@ -24,19 +24,20 @@ const (
 	Green = "\033[32m"
 )
 
-var REGEXP_NEXT_MARKER = regexp.MustCompile("<NextMarker>([^<]+)")
-
 type Message struct {
 	textToStdout string
 	textToFile   string
 }
 
-type KeyValueTuple struct {
-	key   string
-	value int
+type ContainerResult struct {
+	name string
+	stats ContainerStats
 }
 
-//var REGEX_ERROR_CODE = regexp.MustCompile("<Code>([^<]+)")
+type ContainerStats struct {
+	numFiles int64
+	contentLength int64
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -64,6 +65,10 @@ func main() {
 		"blobs", false,
 		"Show each blob URL in the results instead of their container URLs",
 	)
+	maxpages := flag.Int(
+		"maxpages", 20,
+		"Maximum of container pages to traverse looking for blobs",
+	)
 
 	flag.Parse()
 
@@ -78,25 +83,31 @@ func main() {
 	var containers []string = utils.ReadLines(*containersFilename)
 
 	// Results report
-	resultEntities := make(map[string]int)
+	resultEntities := make(map[string]ContainerStats)
 
-	printResults := func(result *map[string]int) {
+	printResults := func(result *map[string]ContainerStats) {
 		fmt.Printf("[+] Results:\n")
 		if len(*result) != 0 {
-			numFiles := 0
+			var numFiles int64 = 0
 
-			entries := make([]KeyValueTuple, 0, len(*result))
-			for k, v := range *result {
-				entries = append(entries, KeyValueTuple{k, v})
+			entries := make([]ContainerResult, 0, len(*result))
+			for containerName, containerStats := range *result {
+				entries = append(entries, ContainerResult{containerName, containerStats})
 			}
 
 			sort.Slice(entries, func(i, j int) bool {
-				return entries[i].value > entries[j].value
+				return entries[i].stats.numFiles > entries[j].stats.numFiles
 			})
 
 			for _, entry := range entries {
-				fmt.Printf("%s[+] %s - %d files%s\n", Green, entry.key, entry.value, Reset)
-				numFiles += entry.value
+				fmt.Printf(
+					"%s[+] %s - %d files (%s)%s\n",
+					Green, entry.name,
+					entry.stats.numFiles, utils.FormatSize(entry.stats.contentLength),
+					Reset,
+				)
+
+				numFiles += entry.stats.numFiles
 			}
 
 			fmt.Printf(
@@ -163,7 +174,7 @@ func main() {
 		var statusCode int
 		var resp *http.Response
 		var resBuf bytes.Buffer
-		var resBody []byte
+		var resultsPage *container.EnumerationResults
 		var err error
 
 		containerURL := fmt.Sprintf(
@@ -196,10 +207,15 @@ func main() {
 					}
 					return
 				}
-				resBody = resBuf.Bytes()
 
-				blobURLs := utils.GetBlobURLs(resBody)
-				resultEntities[account] += len(blobURLs)
+				resultsPage = new(container.EnumerationResults)
+				resultsPage.LoadXML(resBuf.Bytes())
+
+				blobURLs := resultsPage.BlobURLs()
+				resultEntities[account] = ContainerStats{
+					resultEntities[account].numFiles + int64(len(blobURLs)),
+					resultEntities[account].contentLength + resultsPage.TotalContentLength(),
+				}
 
 				if *blobs {
 					for _, blobURL := range blobURLs {
@@ -210,9 +226,9 @@ func main() {
 					}
 				}
 
-				markerMatch := REGEXP_NEXT_MARKER.FindSubmatch(resBody)
-				for len(markerMatch) > 1 {
-					markerCode := markerMatch[1]
+				markerCode := resultsPage.NextMarker
+				page := 1
+				for markerCode != "" && (*maxpages == -1 || page < *maxpages) {
 					containerURLWithMarker := fmt.Sprintf("%s&marker=%s", containerURL, markerCode)
 
 					resp, err = utils.HttpClient.Get(containerURLWithMarker)
@@ -232,10 +248,15 @@ func main() {
 								}
 								break
 							}
-							resBody = resBuf.Bytes()
 
-							blobURLs := utils.GetBlobURLs(resBody)
-							resultEntities[account] += len(blobURLs)
+							resultsPage = new(container.EnumerationResults)
+							resultsPage.LoadXML(resBuf.Bytes())
+
+							blobURLs := resultsPage.BlobURLs()
+							resultEntities[account] = ContainerStats{
+								resultEntities[account].numFiles + int64(len(blobURLs)),
+								resultEntities[account].contentLength + resultsPage.TotalContentLength(),
+							}
 
 							if *blobs {
 								for _, blobURL := range blobURLs {
@@ -246,7 +267,7 @@ func main() {
 								}
 							}
 
-							markerMatch = REGEXP_NEXT_MARKER.FindSubmatch(resBody)
+							markerCode = resultsPage.NextMarker
 						} else {
 							if *verbose > 1 {
 								fmt.Printf(
@@ -257,6 +278,8 @@ func main() {
 							break
 						}
 					}
+
+					page += 1
 				}
 			} else {
 				if *verbose > 2 {

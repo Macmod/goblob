@@ -44,6 +44,7 @@ Goblob comes bundled with two basic wordlists that can be used with the `-contai
 - `-goroutines=N` - Maximum number of concurrent goroutines to allow (default: `5000`).
 - `-blobs=true` - Report the URL of each blob instead of the URL of the containers (default: `false`).
 - `-verbose=N` - Set verbosity level (default: `1`, min: `0`, max: `3`).
+- `-maxpages=N` - Maximum of container pages to traverse looking for blobs (default: `20`, set to `-1` to disable limit)
 
 ## Example
 
@@ -56,7 +57,6 @@ Contributions are welcome by [opening an issue](https://github.com/Macmod/goblob
 * Improve project structure
 * Check blob domain for NXDOMAIN before trying wordlist to save bandwidth
 * Option to read accounts from stdin
-* Compute total size of each container and show it in the results
 
 # License
 The MIT License (MIT)
