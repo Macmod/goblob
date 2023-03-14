@@ -1,36 +1,38 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"os/signal"
+	"regexp"
 	"sort"
 	"strings"
-	"bufio"
-	"regexp"
-	"io/ioutil"
-	"os"
 	"sync"
-	"net/http"
-	"os/signal"
 	"syscall"
+
 	"github.com/Macmod/goblob/utils"
 )
 
 const (
-	Reset  = "\033[0m"
-	Red	= "\033[31m"
-	Green  = "\033[32m"
+	Reset = "\033[0m"
+	Red   = "\033[31m"
+	Green = "\033[32m"
 )
 
 var REGEXP_NEXT_MARKER = regexp.MustCompile("<NextMarker>([^<]+)")
 
 type Message struct {
 	textToStdout string
-	textToFile string
+	textToFile   string
 }
 
 type KeyValueTuple struct {
-	key string
+	key   string
 	value int
 }
 
@@ -107,7 +109,7 @@ func main() {
 	}
 
 	if *verbose > 0 {
-		sigChannel := make(chan os.Signal, 1)	
+		sigChannel := make(chan os.Signal, 1)
 		signal.Notify(sigChannel, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP)
 
 		go func() {
@@ -116,7 +118,7 @@ func main() {
 			printResults(&resultEntities)
 			os.Exit(1)
 		}()
-	
+
 		defer printResults(&resultEntities)
 	}
 
@@ -160,6 +162,7 @@ func main() {
 
 		var statusCode int
 		var resp *http.Response
+		var resBuf bytes.Buffer
 		var resBody []byte
 		var err error
 
@@ -186,13 +189,14 @@ func main() {
 					}
 				}
 
-				resBody, err = ioutil.ReadAll(resp.Body)
+				_, err = io.Copy(&resBuf, resp.Body)
 				if err != nil {
 					if *verbose > 1 {
 						fmt.Printf("%s[-] Error while reading response body: '%s'%s\n", Red, err, Reset)
 					}
 					return
 				}
+				resBody = resBuf.Bytes()
 
 				blobURLs := utils.GetBlobURLs(resBody)
 				resultEntities[account] += len(blobURLs)
@@ -202,12 +206,12 @@ func main() {
 						outputChannel <- Message{
 							fmt.Sprintf("%s[+] %s%s\n", Green, blobURL, Reset),
 							blobURL,
-						}	
+						}
 					}
 				}
 
 				markerMatch := REGEXP_NEXT_MARKER.FindSubmatch(resBody)
-				for markerMatch != nil && len(markerMatch) > 1 {
+				for len(markerMatch) > 1 {
 					markerCode := markerMatch[1]
 					containerURLWithMarker := fmt.Sprintf("%s&marker=%s", containerURL, markerCode)
 
@@ -220,27 +224,38 @@ func main() {
 						statusCode = resp.StatusCode
 						defer resp.Body.Close()
 
-						resBody, err = ioutil.ReadAll(resp.Body)
-						if err != nil {
+						if statusCode < 400 {
+							_, err = io.Copy(&resBuf, resp.Body)
+							if err != nil {
+								if *verbose > 1 {
+									fmt.Printf("%s[-] Error while reading response body: '%s'%s\n", Red, err, Reset)
+								}
+								break
+							}
+							resBody = resBuf.Bytes()
+
+							blobURLs := utils.GetBlobURLs(resBody)
+							resultEntities[account] += len(blobURLs)
+
+							if *blobs {
+								for _, blobURL := range blobURLs {
+									outputChannel <- Message{
+										fmt.Sprintf("%s[+] %s%s\n", Green, blobURL, Reset),
+										blobURL,
+									}
+								}
+							}
+
+							markerMatch = REGEXP_NEXT_MARKER.FindSubmatch(resBody)
+						} else {
 							if *verbose > 1 {
-								fmt.Printf("%s[-] Error while reading response body: '%s'%s\n", Red, err, Reset)
+								fmt.Printf(
+									"%s[-] Error while accessing %s: '%s'%s\n",
+									Red, containerURLWithMarker, err, Reset,
+								)
 							}
 							break
 						}
-
-						blobURLs := utils.GetBlobURLs(resBody)
-						resultEntities[account] += len(blobURLs)
-
-						if *blobs {
-							for _, blobURL := range blobURLs {
-								outputChannel <- Message{
-									fmt.Sprintf("%s[+] %s%s\n", Green, blobURL, Reset),
-									blobURL,
-								}
-							}
-						}
-
-						markerMatch = REGEXP_NEXT_MARKER.FindSubmatch(resBody)
 					}
 				}
 			} else {
