@@ -14,6 +14,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"crypto/tls"
 
 	"github.com/Macmod/goblob/utils"
 	"github.com/Macmod/goblob/xml"
@@ -100,6 +101,7 @@ Y8b d88P
 		"maxconnsperhost", 0,
 		"Maximum of connections per host",
 	)
+	skip_ssl := flag.Bool("skipssl", false, "Skip SSL verification")
 
 	flag.Parse()
 
@@ -202,15 +204,27 @@ Y8b d88P
 		}
 	}(writer, outputChannel)
 
+	var transport = http.Transport{
+		DisableKeepAlives: false,
+		MaxIdleConns: *max_idle_conns,
+		MaxIdleConnsPerHost: *max_idle_conns_per_host,
+		MaxConnsPerHost: *max_conns_per_host,
+	}
+	
+	if *skip_ssl {
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+
 	var httpClient = &http.Client{
 		Timeout: time.Second * time.Duration(*timeout),
-		Transport: &http.Transport{
-			DisableKeepAlives: false,
-			MaxIdleConns: *max_idle_conns,
-			MaxIdleConnsPerHost: *max_idle_conns_per_host,
-			MaxConnsPerHost: *max_conns_per_host,
-		},
+		Transport: &transport,
 	}
+
+//	var ctx = context.Background()
+//	fetch := func(url string) {
+//		req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+//		_client.Do()
+//	}
 
 	checkAzureBlobs := func(account string, containerName string) {
 		defer func() {
