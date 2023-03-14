@@ -44,7 +44,7 @@ Goblob comes bundled with two basic wordlists that can be used with the `-contai
 - `-goroutines=N` - Maximum number of concurrent goroutines to allow (default: `5000`).
 - `-blobs=true` - Report the URL of each blob instead of the URL of the containers (default: `false`).
 - `-verbose=N` - Set verbosity level (default: `1`, min: `0`, max: `3`).
-- `-maxpages=N` - Maximum of container pages to traverse looking for blobs (default: `20`, set to `-1` to disable limit)
+- `-maxpages=N` - Maximum of container pages to traverse looking for blobs (default: `20`, set to `-1` to disable limit or to `0` to avoid listing blobs at all and just check if the container is public)
 - `-timeout=N` - Timeout for HTTP requests (seconds, default: `90`)
 - `-maxidleconns=N` - `MaxIdleConns` transport parameter for HTTP client (default: `100`)
 - `-maxidleconnsperhost=N` - `MaxIdleConnsPerHost` transport parameter for HTTP client (default: `100`)
