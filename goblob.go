@@ -220,12 +220,6 @@ Y8b d88P
 		Transport: &transport,
 	}
 
-//	var ctx = context.Background()
-//	fetch := func(url string) {
-//		req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
-//		_client.Do()
-//	}
-
 	checkAzureBlobs := func(account string, containerName string) {
 		defer func() {
 			<-semaphore
