@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/Macmod/goblob/utils"
 	"github.com/Macmod/goblob/xml"
@@ -68,6 +69,22 @@ func main() {
 	maxpages := flag.Int(
 		"maxpages", 20,
 		"Maximum of container pages to traverse looking for blobs",
+	)
+	timeout := flag.Int(
+		"timeout", 20,
+		"Timeout for HTTP requests (seconds)",
+	)
+	max_idle_conns := flag.Int(
+		"maxidleconns", 100,
+		"Maximum of idle connections",
+	)
+	max_idle_conns_per_host := flag.Int(
+		"maxidleconnsperhost", 100,
+		"Maximum of idle connections per host",
+	)
+	max_conns_per_host := flag.Int(
+		"maxconnsperhost", 100,
+		"Maximum of connections per host",
 	)
 
 	flag.Parse()
@@ -165,6 +182,16 @@ func main() {
 		}
 	}(writer, outputChannel)
 
+	var httpClient = &http.Client{
+		Timeout: time.Second * time.Duration(*timeout),
+		Transport: &http.Transport{
+			DisableKeepAlives: false,
+			MaxIdleConns: *max_idle_conns,
+			MaxIdleConnsPerHost: *max_idle_conns_per_host,
+			MaxConnsPerHost: *max_conns_per_host,
+		},
+	}
+
 	checkAzureBlobs := func(account string, containerName string) {
 		defer func() {
 			<-semaphore
@@ -183,7 +210,7 @@ func main() {
 			containerName,
 		)
 
-		resp, err = utils.HttpClient.Get(containerURL)
+		resp, err = httpClient.Get(containerURL)
 		if err != nil {
 			if *verbose > 1 {
 				fmt.Printf("%s[-] Error while fetching URL: '%s'%s\n", Red, err, Reset)
@@ -231,7 +258,7 @@ func main() {
 				for markerCode != "" && (*maxpages == -1 || page < *maxpages) {
 					containerURLWithMarker := fmt.Sprintf("%s&marker=%s", containerURL, markerCode)
 
-					resp, err = utils.HttpClient.Get(containerURLWithMarker)
+					resp, err = httpClient.Get(containerURLWithMarker)
 					if err != nil {
 						if *verbose > 1 {
 							fmt.Printf("%s[-] Error while fetching URL: '%s'%s\n", Red, err, Reset)

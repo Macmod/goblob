@@ -5,7 +5,6 @@ import (
     "fmt"
     "os"
     "bufio"
-    "net/http"
     "math"
 )
 
@@ -16,11 +15,6 @@ const (
 )
 
 var REGEXP_ENTITY_URL = regexp.MustCompile(ENTITY_URL_PATTERN)
-var HttpClient = &http.Client{
-    Transport: &http.Transport{
-        DisableKeepAlives: false,
-    },
-}
 
 func IsValidEntityName(entityName string) bool {
     if len(entityName) < 3 || len(entityName) > 63 {
