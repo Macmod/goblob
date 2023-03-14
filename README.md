@@ -55,6 +55,7 @@ Contributions are welcome by [opening an issue](https://github.com/Macmod/goblob
 # TODO
 * Improve project structure
 * Check blob domain for NXDOMAIN before trying wordlist to save bandwidth
+* Option to read accounts from stdin
 * Compute total size of each container and show it in the results
 
 # License

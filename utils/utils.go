@@ -8,8 +8,11 @@ import (
     "net/http"
 )
 
-const ENTITY_PATTERN = "^[a-zA-Z][a-zA-Z0-9-]*$"
-const ENTITY_URL_PATTERN = "<Url>([^<]+)"
+const (
+    ACCOUNT_PATTERN = "^[a-z0-9]*$"
+    ENTITY_PATTERN = "^[a-zA-Z][a-zA-Z0-9-]*$"
+    ENTITY_URL_PATTERN = "<Url>([^<]+)"
+)
 
 var REGEXP_ENTITY_URL = regexp.MustCompile(ENTITY_URL_PATTERN)
 var HttpClient = &http.Client{
@@ -22,13 +25,9 @@ func IsValidEntityName(entityName string) bool {
     if len(entityName) < 3 || len(entityName) > 63 {
         return false
     }
-    
-    match, err := regexp.MatchString(ENTITY_PATTERN, entityName)
-    if err != nil {
-        fmt.Println("[-] Error:", err)
-        return false
-    }
-    
+
+    match, _ := regexp.MatchString(ENTITY_PATTERN, entityName)
+
     return match
 }
 
@@ -36,16 +35,10 @@ func IsValidStorageAccountName(name string) bool {
     if len(name) < 3 || len(name) > 24 {
         return false
     }
-    
-    match_allowed, _ := regexp.MatchString("^[a-z0-9]*$", name)
-    match_first, _ := regexp.MatchString("^[a-z0-9]", name)
-    match_consecutive_dash, _ := regexp.MatchString("-{2,}", name)
-    
-    if !match_allowed || !match_first || match_consecutive_dash {
-        return false
-    }
-    
-    return true
+
+    match, _ := regexp.MatchString(ACCOUNT_PATTERN, name)
+
+    return match
 }
 
 func GetBlobURLs(containerXML []byte) []string {
@@ -58,7 +51,7 @@ func GetBlobURLs(containerXML []byte) []string {
             string(urlMatches[1]),
         )
     }
-    
+
     return matches
 }
 
