@@ -49,7 +49,7 @@ Goblob comes bundled with two basic wordlists that can be used with the `-contai
 - `-maxidleconns=N` - `MaxIdleConns` transport parameter for HTTP client (default: `100`)
 - `-maxidleconnsperhost=N` - `MaxIdleConnsPerHost` transport parameter for HTTP client (default: `10`)
 - `-maxconnsperhost=N` - `MaxConnsPerHost` transport parameter for HTTP client (default: `0`)
-- `-skipssl=true` - Skip SSL verification
+- `-skipssl=true` - Skip SSL verification (default: `false`)
 
 ## Example
 
