@@ -71,7 +71,7 @@ func main() {
 		"Maximum of container pages to traverse looking for blobs",
 	)
 	timeout := flag.Int(
-		"timeout", 60,
+		"timeout", 90,
 		"Timeout for HTTP requests (seconds)",
 	)
 	max_idle_conns := flag.Int(
