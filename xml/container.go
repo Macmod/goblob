@@ -42,20 +42,20 @@ func (e *EnumerationResults) LoadXML(xmlData []byte) {
 
 func (e *EnumerationResults) BlobURLs() []string {
 	var urls []string
-
+	
 	for _, blob := range e.Blobs.Blob {
-        urls = append(urls, blob.Url)
+		urls = append(urls, blob.Url)
 	}
-
+	
 	return urls
 }
 
 func (e *EnumerationResults) TotalContentLength() int64 {
 	var contentLength int64 = 0
-
+	
 	for _, blob := range e.Blobs.Blob {
-        contentLength += blob.Properties.ContentLength
+		contentLength += blob.Properties.ContentLength
 	}
-
+	
 	return contentLength
 }
