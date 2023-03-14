@@ -42,6 +42,19 @@ type ContainerStats struct {
 }
 
 func main() {
+	const BANNER = `
+                  888      888          888      
+                  888      888          888      
+                  888      888          888      
+ .d88b.   .d88b.  88888b.  888  .d88b.  88888b.  
+d88P"88b d88""88b 888 "88b 888 d88""88b 888 "88b 
+888  888 888  888 888  888 888 888  888 888  888 
+Y88b 888 Y88..88P 888 d88P 888 Y88..88P 888 d88P 
+ "Y88888  "Y88P"  88888P"  888  "Y88P"  88888P"  
+     888                                         
+Y8b d88P                                         
+ "Y88P"                                          
+`
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: go run goblob.go <targetaccount>")
 		os.Exit(1)
@@ -89,6 +102,8 @@ func main() {
 	)
 
 	flag.Parse()
+
+	fmt.Println(BANNER)
 
 	// Import input from files
 	var accounts []string
