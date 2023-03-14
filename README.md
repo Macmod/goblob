@@ -46,9 +46,9 @@ Goblob comes bundled with two basic wordlists that can be used with the `-contai
 - `-verbose=N` - Set verbosity level (default: `1`, min: `0`, max: `3`).
 - `-maxpages=N` - Maximum of container pages to traverse looking for blobs (default: `20`, set to `-1` to disable limit)
 - `-timeout=N` - Timeout for HTTP requests (seconds, default: `20`)
-- `-maxidleconns=N` - `MaxIdleConns` transport parameter for HTTP client
-- `-maxidleconnsperhost=N` - `MaxIdleConnsPerHost` transport parameter for HTTP client
-- `-maxconnsperhost=N` - `MaxConnsPerHost` transport parameter for HTTP client
+- `-maxidleconns=N` - `MaxIdleConns` transport parameter for HTTP client (default: `100`)
+- `-maxidleconnsperhost=N` - `MaxIdleConnsPerHost` transport parameter for HTTP client (default: `100`)
+- `-maxconnsperhost=N` - `MaxConnsPerHost` transport parameter for HTTP client (default: `100`)
 
 ## Example
 
