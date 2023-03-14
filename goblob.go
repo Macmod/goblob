@@ -93,11 +93,11 @@ Y8b d88P
 		"Maximum of idle connections",
 	)
 	max_idle_conns_per_host := flag.Int(
-		"maxidleconnsperhost", 100,
+		"maxidleconnsperhost", 10,
 		"Maximum of idle connections per host",
 	)
 	max_conns_per_host := flag.Int(
-		"maxconnsperhost", 100,
+		"maxconnsperhost", 0,
 		"Maximum of connections per host",
 	)
 
@@ -236,7 +236,7 @@ Y8b d88P
 				fmt.Printf("%s[-] Error while fetching URL: '%s'%s\n", Red, err, Reset)
 			}
 		} else {
-			defer resp.Body.Close()
+			resp.Body.Close()
 
 			statusCode = resp.StatusCode
 			if statusCode < 400 {
@@ -266,15 +266,15 @@ Y8b d88P
 						statusCode = resp.StatusCode
 						defer resp.Body.Close()
 
-						if statusCode < 400 {
-							_, err = io.Copy(&resBuf, resp.Body)
-							if err != nil {
-								if *verbose > 1 {
-									fmt.Printf("%s[-] Error while reading response body: '%s'%s\n", Red, err, Reset)
-								}
-								break
+						_, err = io.Copy(&resBuf, resp.Body)
+						if err != nil {
+							if *verbose > 1 {
+								fmt.Printf("%s[-] Error while reading response body: '%s'%s\n", Red, err, Reset)
 							}
+							break
+						}
 
+						if statusCode < 400 {
 							resultsPage = new(container.EnumerationResults)
 							resultsPage.LoadXML(resBuf.Bytes())
 
