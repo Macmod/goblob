@@ -201,7 +201,7 @@ Y8b d88P
 
 	var writer *bufio.Writer
 	if *output != "" {
-		output_file, _ := os.OpenFile(*output, os.O_RDWR|os.O_CREATE, 0644)
+		output_file, _ := os.OpenFile(*output, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 		defer output_file.Close()
 
 		writer = bufio.NewWriter(output_file)
