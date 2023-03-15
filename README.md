@@ -15,7 +15,7 @@ To use goblob simply run the following command:
 $ ./goblob <storageaccountname>
 ```
 
-Where `<target>` is the target storage account name to enumerate public Azure blob storage URLs on.
+Where `<storageaccountname>` is the target storage account to enumerate public Azure blob storage URLs on.
 
 You can also specify a list of storage account names to check:
 ```bash
