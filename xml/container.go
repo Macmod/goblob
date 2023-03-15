@@ -5,16 +5,16 @@ import (
 )
 
 type Properties struct {
-	LastModified   string `xml:"Last-Modified"`
-	Etag           string `xml:"Etag"`
-	ContentLength  int64    `xml:"Content-Length"`
-	ContentType    string `xml:"Content-Type"`
+	LastModified    string `xml:"Last-Modified"`
+	Etag            string `xml:"Etag"`
+	ContentLength   int64  `xml:"Content-Length"`
+	ContentType     string `xml:"Content-Type"`
 	ContentEncoding string `xml:"Content-Encoding"`
 	ContentLanguage string `xml:"Content-Language"`
-	ContentMD5     string `xml:"Content-MD5"`
-	CacheControl   string `xml:"Cache-Control"`
-	BlobType       string `xml:"BlobType"`
-	LeaseStatus    string `xml:"LeaseStatus"`
+	ContentMD5      string `xml:"Content-MD5"`
+	CacheControl    string `xml:"Cache-Control"`
+	BlobType        string `xml:"BlobType"`
+	LeaseStatus     string `xml:"LeaseStatus"`
 }
 
 type Blob struct {
@@ -42,11 +42,11 @@ func (e *EnumerationResults) LoadXML(xmlData []byte) {
 
 func (e *EnumerationResults) BlobURLs() []string {
 	var urls []string
-	
+
 	for _, blob := range e.Blobs.Blob {
 		urls = append(urls, blob.Url)
 	}
-	
+
 	return urls
 }
 
@@ -56,6 +56,6 @@ func (e *EnumerationResults) TotalContentLength() int64 {
 	for _, blob := range e.Blobs.Blob {
 		contentLength += blob.Properties.ContentLength
 	}
-	
+
 	return contentLength
 }

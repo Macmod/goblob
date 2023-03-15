@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"io"
@@ -14,7 +15,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	"crypto/tls"
 
 	"github.com/Macmod/goblob/utils"
 	"github.com/Macmod/goblob/xml"
@@ -34,14 +34,14 @@ type Message struct {
 type ResultsMap map[string]ContainerStats
 
 type AccountResult struct {
-	name string
+	name  string
 	stats ContainerStats
 }
 
 type ContainerStats struct {
 	containerNames map[string]struct{}
-	numFiles int
-	contentLength int64
+	numFiles       int
+	contentLength  int64
 }
 
 func (r ResultsMap) saveContainerResults(
@@ -231,11 +231,11 @@ Y8b d88P
 
 	// HTTP client parameters
 	var transport = http.Transport{
-		DisableKeepAlives: false,
-		DisableCompression: true,
-		MaxIdleConns: *max_idle_conns,
+		DisableKeepAlives:   false,
+		DisableCompression:  true,
+		MaxIdleConns:        *max_idle_conns,
 		MaxIdleConnsPerHost: *max_idle_conns_per_host,
-		MaxConnsPerHost: *max_conns_per_host,
+		MaxConnsPerHost:     *max_conns_per_host,
 	}
 
 	if *skip_ssl {
@@ -243,7 +243,7 @@ Y8b d88P
 	}
 
 	var httpClient = &http.Client{
-		Timeout: time.Second * time.Duration(*timeout),
+		Timeout:   time.Second * time.Duration(*timeout),
 		Transport: &transport,
 	}
 
