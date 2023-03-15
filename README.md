@@ -1,5 +1,7 @@
 # Goblob 🫐
 
+![](https://img.shields.io/github/go-mod/go-version/Macmod/goblob) ![](https://img.shields.io/github/languages/code-size/Macmod/goblob) ![](https://img.shields.io/github/actions/workflow/status/Macmod/goblob/release.yml)
+
 Goblob is a lightweight and fast enumeration tool designed to aid in the discovery of sensitive information exposed publicy in Azure blobs, which can be useful for various research purposes such as vulnerability assessments, penetration testing, and reconnaissance.
 
 *Warning*. Goblob will issue individual goroutines for each container name to check in each storage account, only limited by the maximum number of concurrent goroutines specified in the `-goroutines` flag. This implementation can exhaust bandwidth & memory pretty quickly in most cases with the default wordlist, or potentially cost you a lot of money if you're using the tool in a cloud environment. Make sure you understand what you are doing before running the tool.
