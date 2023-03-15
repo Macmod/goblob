@@ -37,7 +37,7 @@ $ ./goblob -accounts accounts.txt -containers wordlists/goblob-folder-names.txt 
 
 Goblob comes bundled with two basic wordlists that can be used with the `-containers` option:
 
-- [wordlists/goblob-folder-names.txt](wordlists/goblob-folder-names.txt) (default) - Adaptation from xajkep's [directory_only_one.small.txt](https://github.com/xajkep/wordlists/blob/master/discovery/directory_only_one.small.txt) - a wordlist containing generic folder names that are likely to be used as container names.
+- [wordlists/goblob-folder-names.txt](wordlists/goblob-folder-names.txt) (default) - Adaptation from koaj's [aws-s3-bucket-wordlist](https://github.com/koaj/aws-s3-bucket-wordlist/blob/master/list.txt) - a wordlist containing generic folder names that are likely to be used as container names.
 - [wordlists/goblob-folder-names.small.txt](wordlists/goblob-folder-names.small.txt) - Subset of the default wordlist containing only words that have been found as container names in a real experiment with over 35k distinct storage accounts + words from the default wordlist that are part of the NLTK corpus.
 
 ## Optional Flags
