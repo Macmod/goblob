@@ -1,6 +1,6 @@
 # Goblob 🫐
 
-![](https://img.shields.io/github/go-mod/go-version/Macmod/goblob) ![](https://img.shields.io/github/languages/code-size/Macmod/goblob) ![](https://img.shields.io/github/actions/workflow/status/Macmod/goblob/release.yml)
+![](https://img.shields.io/github/go-mod/go-version/Macmod/goblob) ![](https://img.shields.io/github/languages/code-size/Macmod/goblob) ![](https://img.shields.io/github/license/Macmod/goblob) ![](https://img.shields.io/github/actions/workflow/status/Macmod/goblob/release.yml) ![](https://goreportcard.com/report/github.com/Macmod/goblob)
 
 Goblob is a lightweight and fast enumeration tool designed to aid in the discovery of sensitive information exposed publicy in Azure blobs, which can be useful for various research purposes such as vulnerability assessments, penetration testing, and reconnaissance.
 
