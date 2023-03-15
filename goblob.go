@@ -31,6 +31,8 @@ type Message struct {
 	textToFile   string
 }
 
+type ResultsMap map[string]ContainerStats
+
 type AccountResult struct {
 	name string
 	stats ContainerStats
@@ -40,6 +42,27 @@ type ContainerStats struct {
 	containerNames map[string]struct{}
 	numFiles int
 	contentLength int64
+}
+
+func (r ResultsMap) saveContainerResults(
+	account string,
+	containerName string,
+	numFiles int,
+	contentLength int64,
+) {
+	if entity, ok := r[account]; ok {
+		entity.containerNames[containerName] = utils.Empty
+		entity.numFiles += numFiles
+		entity.contentLength += contentLength
+
+		r[account] = entity
+	} else {
+		r[account] = ContainerStats{
+			map[string]struct{}{containerName: utils.Empty},
+			numFiles,
+			contentLength,
+		}
+	}
 }
 
 func main() {
@@ -118,9 +141,9 @@ Y8b d88P
 	var containers []string = utils.ReadLines(*containersFilename)
 
 	// Results report
-	resultEntities := make(map[string]ContainerStats)
+	resultEntities := make(ResultsMap)
 
-	printResults := func(result *map[string]ContainerStats) {
+	printResults := func(result *ResultsMap) {
 		fmt.Printf("[+] Results:\n")
 		if len(*result) != 0 {
 			var numFiles int = 0
@@ -188,9 +211,11 @@ Y8b d88P
 
 	// Dedicated goroutine for writing results
 	outputChannel := make(chan Message)
-	go func(writer *bufio.Writer, msgChannel chan Message) {
-		for {
-			msg := <-msgChannel
+	go func(
+		writer *bufio.Writer,
+		msgChannel chan Message,
+	) {
+		for msg := range msgChannel {
 			if msg.textToStdout != "" {
 				fmt.Printf(msg.textToStdout)
 			}
@@ -204,13 +229,15 @@ Y8b d88P
 		}
 	}(writer, outputChannel)
 
+	// HTTP client parameters
 	var transport = http.Transport{
 		DisableKeepAlives: false,
+		DisableCompression: true,
 		MaxIdleConns: *max_idle_conns,
 		MaxIdleConnsPerHost: *max_idle_conns_per_host,
 		MaxConnsPerHost: *max_conns_per_host,
 	}
-	
+
 	if *skip_ssl {
 		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
@@ -226,38 +253,38 @@ Y8b d88P
 			wg.Done()
 		}()
 
-		var statusCode int
-		var resp *http.Response
-		var resBuf bytes.Buffer
-		var resultsPage *container.EnumerationResults
-		var err error
-
 		containerURL := fmt.Sprintf(
 			"https://%s.blob.core.windows.net/%s?restype=container",
 			account,
 			containerName,
 		)
 
-		resp, err = httpClient.Get(containerURL)
+		checkResp, err := httpClient.Get(containerURL)
 		if err != nil {
 			if *verbose > 1 {
 				fmt.Printf("%s[-] Error while fetching URL: '%s'%s\n", Red, err, Reset)
 			}
 		} else {
-			resp.Body.Close()
+			defer checkResp.Body.Close()
 
-			statusCode = resp.StatusCode
-			if statusCode < 400 {
+			checkStatusCode := checkResp.StatusCode
+			if checkStatusCode < 400 {
+				resultEntities.saveContainerResults(
+					account,
+					containerName,
+					0, 0,
+				)
+
 				if !*blobs {
 					outputChannel <- Message{
-						fmt.Sprintf("%s[+][C=%d] %s%s\n", Green, statusCode, containerURL, Reset),
+						fmt.Sprintf("%s[+][C=%d] %s%s\n", Green, checkStatusCode, containerURL, Reset),
 						containerURL,
 					}
 				}
 
-				markerCode := ""
+				markerCode := "FirstPage"
 				page := 1
-				for page == 1 || (markerCode != "" && (*maxpages == -1 || page <= *maxpages)) {
+				for markerCode != "" && (*maxpages == -1 || page <= *maxpages) {
 					var containerURLWithMarker string
 					if page == 1 {
 						containerURLWithMarker = fmt.Sprintf("%s&comp=list&showonly=files", containerURL)
@@ -265,16 +292,16 @@ Y8b d88P
 						containerURLWithMarker = fmt.Sprintf("%s&comp=list&showonly=files&marker=%s", containerURL, markerCode)
 					}
 
-					resp, err = httpClient.Get(containerURLWithMarker)
+					resp, err := httpClient.Get(containerURLWithMarker)
 					if err != nil {
 						if *verbose > 1 {
 							fmt.Printf("%s[-] Error while fetching URL: '%s'%s\n", Red, err, Reset)
 						}
 					} else {
-						statusCode = resp.StatusCode
-						defer resp.Body.Close()
+						statusCode := resp.StatusCode
 
-						_, err = io.Copy(&resBuf, resp.Body)
+						resBuf := new(bytes.Buffer)
+						_, err = io.Copy(resBuf, resp.Body)
 						if err != nil {
 							if *verbose > 1 {
 								fmt.Printf("%s[-] Error while reading response body: '%s'%s\n", Red, err, Reset)
@@ -283,23 +310,16 @@ Y8b d88P
 						}
 
 						if statusCode < 400 {
-							resultsPage = new(container.EnumerationResults)
+							resultsPage := new(container.EnumerationResults)
 							resultsPage.LoadXML(resBuf.Bytes())
 
 							blobURLs := resultsPage.BlobURLs()
-							if entity, ok := resultEntities[account]; ok {
-								entity.containerNames[containerName] = utils.Empty
-								entity.numFiles += len(blobURLs)
-								entity.contentLength += resultsPage.TotalContentLength()
-
-								resultEntities[account] = entity
-							} else {
-								resultEntities[account] = ContainerStats{
-									map[string]struct{}{containerName: utils.Empty},
-									len(blobURLs),
-									resultsPage.TotalContentLength(),
-								}
-							}
+							resultEntities.saveContainerResults(
+								account,
+								containerName,
+								len(blobURLs),
+								resultsPage.TotalContentLength(),
+							)
 
 							if *blobs {
 								for _, blobURL := range blobURLs {
@@ -326,7 +346,7 @@ Y8b d88P
 				}
 			} else {
 				if *verbose > 2 {
-					fmt.Printf("%s[+][C=%d] %s%s\n", Red, statusCode, containerURL, Reset)
+					fmt.Printf("%s[+][C=%d] %s%s\n", Red, checkStatusCode, containerURL, Reset)
 				}
 			}
 		}
@@ -360,4 +380,6 @@ Y8b d88P
 	}
 
 	wg.Wait()
+
+	close(outputChannel)
 }
