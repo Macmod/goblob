@@ -299,6 +299,7 @@ Y8b d88P
 						}
 					} else {
 						statusCode := resp.StatusCode
+						defer resp.Body.Close()
 
 						resBuf := new(bytes.Buffer)
 						_, err = io.Copy(resBuf, resp.Body)
