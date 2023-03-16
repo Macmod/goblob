@@ -52,6 +52,7 @@ Goblob comes bundled with two basic wordlists that can be used with the `-contai
 - `-maxidleconnsperhost=N` - `MaxIdleConnsPerHost` transport parameter for HTTP client (default: `10`)
 - `-maxconnsperhost=N` - `MaxConnsPerHost` transport parameter for HTTP client (default: `0`)
 - `-skipssl=true` - Skip SSL verification (default: `false`)
+- `-invertsearch=true` - Enumerate accounts for each container instead of containers for each account (default: `false`)
 
 ## Example
 

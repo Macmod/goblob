@@ -10,22 +10,22 @@ import (
 
 const (
 	ACCOUNT_PATTERN    = "^[a-z0-9]*$"
-	ENTITY_PATTERN     = "^[a-zA-Z][a-zA-Z0-9-]*$"
-	ENTITY_URL_PATTERN = "<Url>([^<]+)"
+	CONTAINER_PATTERN     = "^[a-zA-Z][a-zA-Z0-9-]*$"
+	BLOB_URL_PATTERN = "<Url>([^<]+)"
 )
 
 var Empty struct{}
 
-var REGEXP_ENTITY_URL = regexp.MustCompile(ENTITY_URL_PATTERN)
-var REGEXP_ENTITY = regexp.MustCompile(ENTITY_PATTERN)
+var REGEXP_BLOB_URL = regexp.MustCompile(BLOB_URL_PATTERN)
+var REGEXP_CONTAINER = regexp.MustCompile(CONTAINER_PATTERN)
 var REGEXP_ACCOUNT = regexp.MustCompile(ACCOUNT_PATTERN)
 
-func IsValidEntityName(entityName string) bool {
-	if len(entityName) < 3 || len(entityName) > 63 {
+func IsValidContainerName(name string) bool {
+	if len(name) < 3 || len(name) > 63 {
 		return false
 	}
 
-	match := REGEXP_ENTITY.MatchString(entityName)
+	match := REGEXP_CONTAINER.MatchString(name)
 
 	return match
 }
@@ -38,20 +38,6 @@ func IsValidStorageAccountName(name string) bool {
 	match := REGEXP_ACCOUNT.MatchString(name)
 
 	return match
-}
-
-func GetBlobURLs(containerXML []byte) []string {
-	var matches []string
-
-	urlsMatches := REGEXP_ENTITY_URL.FindAllSubmatch(containerXML, -1)
-	for _, urlMatches := range urlsMatches {
-		matches = append(
-			matches,
-			string(urlMatches[1]),
-		)
-	}
-
-	return matches
 }
 
 func ReadLines(filename string) []string {

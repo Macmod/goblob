@@ -2,68 +2,20 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"os/signal"
-	"sort"
+	"net/http"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/Macmod/goblob/core"
 	"github.com/Macmod/goblob/utils"
-	"github.com/Macmod/goblob/xml"
 )
-
-const (
-	Reset = "\033[0m"
-	Red   = "\033[31m"
-	Green = "\033[32m"
-)
-
-type Message struct {
-	textToStdout string
-	textToFile   string
-}
-
-type ResultsMap map[string]ContainerStats
-
-type AccountResult struct {
-	name  string
-	stats ContainerStats
-}
-
-type ContainerStats struct {
-	containerNames map[string]struct{}
-	numFiles       int
-	contentLength  int64
-}
-
-func (r ResultsMap) saveContainerResults(
-	account string,
-	containerName string,
-	numFiles int,
-	contentLength int64,
-) {
-	if entity, ok := r[account]; ok {
-		entity.containerNames[containerName] = utils.Empty
-		entity.numFiles += numFiles
-		entity.contentLength += contentLength
-
-		r[account] = entity
-	} else {
-		r[account] = ContainerStats{
-			map[string]struct{}{containerName: utils.Empty},
-			numFiles,
-			contentLength,
-		}
-	}
-}
 
 func main() {
 	const BANNER = `
@@ -104,6 +56,10 @@ Y8b d88P
 		"blobs", false,
 		"Show each blob URL in the results instead of their container URLs",
 	)
+	invertSearch := flag.Bool(
+		"invertsearch", false,
+		"Enumerate accounts for each container instead of containers for each account",
+	)
 	maxpages := flag.Int(
 		"maxpages", 20,
 		"Maximum of container pages to traverse looking for blobs",
@@ -112,19 +68,19 @@ Y8b d88P
 		"timeout", 90,
 		"Timeout for HTTP requests (seconds)",
 	)
-	max_idle_conns := flag.Int(
+	maxIdleConns := flag.Int(
 		"maxidleconns", 100,
 		"Maximum of idle connections",
 	)
-	max_idle_conns_per_host := flag.Int(
+	maxIdleConnsPerHost := flag.Int(
 		"maxidleconnsperhost", 10,
 		"Maximum of idle connections per host",
 	)
-	max_conns_per_host := flag.Int(
+	maxConnsPerHost := flag.Int(
 		"maxconnsperhost", 0,
 		"Maximum of connections per host",
 	)
-	skip_ssl := flag.Bool("skipssl", false, "Skip SSL verification")
+	skipSSL := flag.Bool("skipssl", false, "Skip SSL verification")
 
 	flag.Parse()
 
@@ -132,54 +88,19 @@ Y8b d88P
 
 	// Import input from files
 	var accounts []string
+	var filteredAccounts []string
+
 	if *accountsFilename != "" {
 		accounts = utils.ReadLines(*accountsFilename)
 	} else {
-		accounts = []string{os.Args[1]}
+		accounts = []string{os.Args[1]}	
 	}
 
 	var containers []string = utils.ReadLines(*containersFilename)
+	var filteredContainers []string
 
 	// Results report
-	resultEntities := make(ResultsMap)
-
-	printResults := func(result *ResultsMap) {
-		fmt.Printf("[+] Results:\n")
-		if len(*result) != 0 {
-			var numFiles int = 0
-			var numContainers int = 0
-
-			entries := make([]AccountResult, 0, len(*result))
-			for accountName, containerStats := range *result {
-				entries = append(entries, AccountResult{accountName, containerStats})
-			}
-
-			sort.Slice(entries, func(i, j int) bool {
-				return entries[i].stats.numFiles > entries[j].stats.numFiles
-			})
-
-			for _, entry := range entries {
-				fmt.Printf(
-					"%s[+] %s - %d files in %d containers (%s)%s\n",
-					Green, entry.name,
-					entry.stats.numFiles,
-					len(entry.stats.containerNames),
-					utils.FormatSize(int64(entry.stats.contentLength)),
-					Reset,
-				)
-
-				numContainers += len(entry.stats.containerNames)
-				numFiles += entry.stats.numFiles
-			}
-
-			fmt.Printf(
-				"%s[+] Found a total of %d files across %d account(s) and %d containers%s\n",
-				Green, numFiles, numContainers, len(*result), Reset,
-			)
-		} else {
-			fmt.Printf("%s[-] No files found.%s\n", Red, Reset)
-		}
-	}
+	resultsMap := make(core.ResultsMap)
 
 	if *verbose > 0 {
 		sigChannel := make(chan os.Signal, 1)
@@ -187,18 +108,21 @@ Y8b d88P
 
 		go func() {
 			sig := <-sigChannel
-			fmt.Printf("%s[-] Signal detected (%s). Printing partial results...%s\n", Red, sig, Reset)
-			printResults(&resultEntities)
+			fmt.Printf(
+				"%s[-] Signal detected (%s). Printing partial results...%s\n",
+				core.Red,
+				sig,
+				core.Reset,
+			)
+
+			resultsMap.PrintResults()
 			os.Exit(1)
 		}()
 
-		defer printResults(&resultEntities)
+		defer resultsMap.PrintResults()
 	}
 
-	// Synchronization stuff
-	semaphore := make(chan struct{}, *maxGoroutines)
-	var wg sync.WaitGroup
-
+	// Setting up output file writer
 	var writer *bufio.Writer
 	if *output != "" {
 		output_file, _ := os.OpenFile(*output, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
@@ -210,35 +134,19 @@ Y8b d88P
 	}
 
 	// Dedicated goroutine for writing results
-	outputChannel := make(chan Message)
-	go func(
-		writer *bufio.Writer,
-		msgChannel chan Message,
-	) {
-		for msg := range msgChannel {
-			if msg.textToStdout != "" {
-				fmt.Printf(msg.textToStdout)
-			}
-
-			if msg.textToFile != "" {
-				if writer != nil {
-					writer.WriteString(msg.textToFile + "\n")
-					writer.Flush()
-				}
-			}
-		}
-	}(writer, outputChannel)
+	outputChannel := make(chan core.Message)
+	go core.ReportResults(writer, outputChannel)
 
 	// HTTP client parameters
 	var transport = http.Transport{
 		DisableKeepAlives:   false,
 		DisableCompression:  true,
-		MaxIdleConns:        *max_idle_conns,
-		MaxIdleConnsPerHost: *max_idle_conns_per_host,
-		MaxConnsPerHost:     *max_conns_per_host,
+		MaxIdleConns:        *maxIdleConns,
+		MaxIdleConnsPerHost: *maxIdleConnsPerHost,
+		MaxConnsPerHost:     *maxConnsPerHost,
 	}
 
-	if *skip_ssl {
+	if *skipSSL {
 		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
@@ -247,136 +155,86 @@ Y8b d88P
 		Transport: &transport,
 	}
 
-	checkAzureBlobs := func(account string, containerName string) {
-		defer func() {
-			<-semaphore
-			wg.Done()
-		}()
+	// Synchronization stuff
+	semaphore := make(chan struct{}, *maxGoroutines)
+	var wg sync.WaitGroup
 
-		containerURL := fmt.Sprintf(
-			"https://%s.blob.core.windows.net/%s?restype=container",
-			account,
-			containerName,
-		)
+	// Container scanner object
+	var containerScanner = core.ContainerScanner{
+		httpClient,
+		&wg,
+		semaphore,
+		outputChannel,
+		resultsMap,
+		*blobs,
+		*verbose,
+		*maxpages,
+	}
 
-		checkResp, err := httpClient.Get(containerURL)
-		if err != nil {
-			if *verbose > 1 {
-				fmt.Printf("%s[-] Error while fetching URL: '%s'%s\n", Red, err, Reset)
-			}
+	// Filtering out invalid values from accounts and containers
+	removedAccounts := 0
+	removedContainers := 0
+
+	if *verbose > 0 {
+		fmt.Printf("[~] Filtering out invalid accounts and containers\n")
+	}
+
+	for idx, account := range accounts {
+		account = strings.Replace(strings.ToLower(account), ".blob.core.windows.net", "", -1)
+		if utils.IsValidStorageAccountName(account) {
+			filteredAccounts = append(filteredAccounts, account)
 		} else {
-			defer checkResp.Body.Close()
-
-			checkStatusCode := checkResp.StatusCode
-			if checkStatusCode < 400 {
-				resultEntities.saveContainerResults(
-					account,
-					containerName,
-					0, 0,
-				)
-
-				if !*blobs {
-					outputChannel <- Message{
-						fmt.Sprintf("%s[+][C=%d] %s%s\n", Green, checkStatusCode, containerURL, Reset),
-						containerURL,
-					}
-				}
-
-				markerCode := "FirstPage"
-				page := 1
-				for markerCode != "" && (*maxpages == -1 || page <= *maxpages) {
-					var containerURLWithMarker string
-					if page == 1 {
-						containerURLWithMarker = fmt.Sprintf("%s&comp=list&showonly=files", containerURL)
-					} else {
-						containerURLWithMarker = fmt.Sprintf("%s&comp=list&showonly=files&marker=%s", containerURL, markerCode)
-					}
-
-					resp, err := httpClient.Get(containerURLWithMarker)
-					if err != nil {
-						if *verbose > 1 {
-							fmt.Printf("%s[-] Error while fetching URL: '%s'%s\n", Red, err, Reset)
-						}
-					} else {
-						statusCode := resp.StatusCode
-						defer resp.Body.Close()
-
-						resBuf := new(bytes.Buffer)
-						_, err = io.Copy(resBuf, resp.Body)
-						if err != nil {
-							if *verbose > 1 {
-								fmt.Printf("%s[-] Error while reading response body: '%s'%s\n", Red, err, Reset)
-							}
-							break
-						}
-
-						if statusCode < 400 {
-							resultsPage := new(container.EnumerationResults)
-							resultsPage.LoadXML(resBuf.Bytes())
-
-							blobURLs := resultsPage.BlobURLs()
-							resultEntities.saveContainerResults(
-								account,
-								containerName,
-								len(blobURLs),
-								resultsPage.TotalContentLength(),
-							)
-
-							if *blobs {
-								for _, blobURL := range blobURLs {
-									outputChannel <- Message{
-										fmt.Sprintf("%s[+] %s%s\n", Green, blobURL, Reset),
-										blobURL,
-									}
-								}
-							}
-
-							markerCode = resultsPage.NextMarker
-						} else {
-							if *verbose > 1 {
-								fmt.Printf(
-									"%s[-] Error while accessing %s: '%s'%s\n",
-									Red, containerURLWithMarker, err, Reset,
-								)
-							}
-							break
-						}
-					}
-
-					page += 1
-				}
-			} else {
-				if *verbose > 2 {
-					fmt.Printf("%s[+][C=%d] %s%s\n", Red, checkStatusCode, containerURL, Reset)
-				}
+			if *verbose > 1 {
+				fmt.Printf("[~][%d] Skipping invalid storage account name '%s'\n", idx, account)
 			}
 		}
 	}
 
+	for idx, containerName := range containers {
+		containerName = strings.ToLower(containerName)
+		if utils.IsValidContainerName(containerName) {
+			filteredContainers = append(filteredContainers, containerName)
+		} else {
+			if *verbose > 1 {
+				fmt.Printf("[~][%d] Skipping invalid storage account name '%s'\n", idx, containerName)
+			}
+		}
+	}
+
+	if *verbose > 0 {
+		fmt.Printf(
+			"[~] Ignored %d invalid accounts and %d invalid containers from input\n",
+			removedAccounts,
+			removedContainers,
+		)
+	}
+
 	// Main loop
-	for idx, account := range accounts {
-		account = strings.Replace(strings.ToLower(account), ".blob.core.windows.net", "", -1)
-		if !utils.IsValidStorageAccountName(account) {
+	if !*invertSearch {
+		for idx, account := range filteredAccounts {
 			if *verbose > 0 {
-				fmt.Printf("[~][%d] Skipping invalid storage account name '%s'\n", idx, account)
-			}
-			continue
-		}
-
-		if *verbose > 0 {
-			fmt.Printf("[~][%d] Searching blob containers in storage account %s\n", idx, account)
-		}
-
-		for _, containerName := range containers {
-			containerName = strings.ToLower(containerName)
-			if !utils.IsValidEntityName(containerName) {
-				continue
+				fmt.Printf("[~][%d] Searching blob containers in storage account '%s'\n", idx, account)
 			}
 
-			wg.Add(1)
-			semaphore <- struct{}{}
+			for _, containerName := range filteredContainers {
+				wg.Add(1)
+				semaphore <- struct{}{}
 
-			go checkAzureBlobs(account, containerName)
+				go containerScanner.Scan(account, containerName)
+			}
+		}
+	} else {
+		for idx, containerName := range filteredContainers {
+			if *verbose > 0 {
+				fmt.Printf("[~][%d] Searching blob containers named '%s'\n", idx, containerName)
+			}
+
+			for _, account := range filteredAccounts {
+				wg.Add(1)
+				semaphore <- struct{}{}
+
+				go containerScanner.Scan(account, containerName)
+			}
 		}
 	}
 
