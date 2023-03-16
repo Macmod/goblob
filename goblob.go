@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -31,10 +29,6 @@ Y88b 888 Y88..88P 888 d88P 888 Y88..88P 888 d88P
 Y8b d88P                                         
  "Y88P"                                          
 `
-	if len(os.Args) < 2 {
-		fmt.Println("Usage: go run goblob.go <targetaccount>")
-		os.Exit(1)
-	}
 
 	accountsFilename := flag.String(
 		"accounts", "", "File with target Azure storage account names to check",
@@ -44,7 +38,7 @@ Y8b d88P
 		"Wordlist file with possible container names for Azure blob storage",
 	)
 	maxGoroutines := flag.Int(
-		"goroutines", 5000,
+		"goroutines", 500,
 		"Maximum of concurrent goroutines",
 	)
 	output := flag.String(
@@ -90,19 +84,17 @@ Y8b d88P
 
 	// Import input from files
 	var accounts []string
-	var filteredAccounts []string
-
 	if *accountsFilename != "" {
 		accounts = utils.ReadLines(*accountsFilename)
-	} else {
-		accounts = []string{os.Args[1]}
+	} else if flag.NArg() > 0 {
+		accounts = []string{flag.Arg(0)}
 	}
 
 	var containers []string = utils.ReadLines(*containersFilename)
-	var filteredContainers []string
 
 	// Results report
-	resultsMap := make(core.ResultsMap)
+	resultsMap := new(core.ResultsMap)
+	resultsMap.Init()
 
 	if *verbose > 0 {
 		sigChannel := make(chan os.Signal, 1)
@@ -157,115 +149,45 @@ Y8b d88P
 		Transport: &transport,
 	}
 
-	// Synchronization stuff
-	semaphore := make(chan struct{}, *maxGoroutines)
-	var wg sync.WaitGroup
-
 	// Container scanner object
-	var containerScanner = core.ContainerScanner{
+	var containerScanner = new(core.ContainerScanner)
+	containerScanner.Init(
 		httpClient,
-		&wg,
-		semaphore,
+		*maxGoroutines,
 		outputChannel,
 		resultsMap,
 		*blobs,
 		*verbose,
 		*maxpages,
-	}
+		*invertSearch,
+	)
+	defer containerScanner.Done()
 
-	// Filtering out invalid values from accounts and containers
-	removedAccounts := 0
-	removedContainers := 0
+	var filteredContainers []string
+	utils.FilterValidContainers(containers, &filteredContainers, *verbose > 1)
 
-	for idx, account := range accounts {
-		account = strings.Replace(strings.ToLower(account), ".blob.core.windows.net", "", -1)
-		if utils.IsValidStorageAccountName(account) {
-			filteredAccounts = append(filteredAccounts, account)
+	if flag.NArg() == 0 && *accountsFilename == "" {
+		if !*invertSearch {
+			scanner := bufio.NewScanner(os.Stdin)
+
+			for scanner.Scan() {
+				account := scanner.Text()
+				accounts = []string{account}
+				if utils.IsValidStorageAccountName(account) {
+					containerScanner.ScanList(accounts, filteredContainers)
+				}
+			}
 		} else {
-			if *verbose > 1 {
-				fmt.Printf("[~][%d] Skipping invalid storage account name '%s'\n", idx, account)
-			}
-			removedAccounts += 1
-		}
-	}
-
-	for idx, containerName := range containers {
-		containerName = strings.ToLower(containerName)
-		if utils.IsValidContainerName(containerName) {
-			filteredContainers = append(filteredContainers, containerName)
-		} else {
-			if *verbose > 1 {
-				fmt.Printf("[~][%d] Skipping invalid storage account name '%s'\n", idx, containerName)
-			}
-			removedContainers += 1
-		}
-	}
-
-	nContainers := len(filteredContainers)
-	nAccounts := len(filteredAccounts)
-
-	if *verbose > 0 {
-		fmt.Printf(
-			"[~] Valid accounts to search: %d\n",
-			nAccounts,
-		)
-
-		fmt.Printf(
-			"[~] Invalid accounts ignored: %d\n",
-			removedAccounts,
-		)
-
-		fmt.Printf(
-			"[~] Valid containers to search: %d\n",
-			nContainers,
-		)
-
-		fmt.Printf(
-			"[~] Invalid containers ignored: %d\n",
-			removedContainers,
-		)
-	}
-
-	// Main loop
-	if !*invertSearch {
-		for idx, account := range filteredAccounts {
-			if *verbose > 0 {
-				fmt.Printf(
-					"[~][%d] Searching %d containers in account '%s'\n",
-					idx,
-					nContainers,
-					account,
-				)
-			}
-
-			for _, containerName := range filteredContainers {
-				wg.Add(1)
-				semaphore <- struct{}{}
-
-				go containerScanner.Scan(account, containerName)
-			}
+			fmt.Printf(
+				"%s[-] The 'invertsearch' flag cannot be used with an input accounts file.%s\n",
+				core.Red,
+				core.Reset,
+			)
 		}
 	} else {
-		for idx, containerName := range filteredContainers {
-			if *verbose > 0 {
-				fmt.Printf(
-					"[~][%d] Searching %d accounts for containers named '%s' \n",
-					idx,
-					nAccounts,
-					containerName,
-				)
-			}
+		var filteredAccounts []string
+		utils.FilterValidAccounts(accounts, &filteredAccounts, *verbose > 1)
 
-			for _, account := range filteredAccounts {
-				wg.Add(1)
-				semaphore <- struct{}{}
-
-				go containerScanner.Scan(account, containerName)
-			}
-		}
+		containerScanner.ScanList(filteredAccounts, filteredContainers)
 	}
-
-	wg.Wait()
-
-	close(outputChannel)
 }

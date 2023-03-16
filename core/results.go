@@ -3,11 +3,15 @@ package core
 import (
 	"bufio"
 	"fmt"
+	"sync"
 	"github.com/Macmod/goblob/utils"
 	"sort"
 )
 
-type ResultsMap map[string]ContainerStats
+type ResultsMap struct {
+	results map[string]ContainerStats
+	mutex sync.Mutex
+}
 
 type AccountResult struct {
 	name  string
@@ -20,35 +24,45 @@ type ContainerStats struct {
 	contentLength  int64
 }
 
-func (r ResultsMap) SaveContainerResults(
+func (rm *ResultsMap) Init() {
+	rm.results = make(map[string]ContainerStats)
+}
+
+func (rm *ResultsMap) StoreContainerResults(
 	account string,
 	containerName string,
 	numFiles int,
 	contentLength int64,
 ) {
-	if entity, ok := r[account]; ok {
+	rm.mutex.Lock()
+
+	if entity, ok := rm.results[account]; ok {
 		entity.containerNames[containerName] = utils.Empty
 		entity.numFiles += numFiles
 		entity.contentLength += contentLength
 
-		r[account] = entity
+		rm.results[account] = entity
 	} else {
-		r[account] = ContainerStats{
+		rm.results[account] = ContainerStats{
 			map[string]struct{}{containerName: utils.Empty},
 			numFiles,
 			contentLength,
 		}
 	}
+
+	rm.mutex.Unlock()
 }
 
-func (result ResultsMap) PrintResults() {
+func (rm *ResultsMap) PrintResults() {
+	rm.mutex.Lock()
+
 	fmt.Printf("[+] Results:\n")
-	if len(result) != 0 {
+	if len(rm.results) != 0 {
 		var numFiles int = 0
 		var numContainers int = 0
 
-		entries := make([]AccountResult, 0, len(result))
-		for accountName, containerStats := range result {
+		entries := make([]AccountResult, 0, len(rm.results))
+		for accountName, containerStats := range rm.results {
 			entries = append(entries, AccountResult{accountName, containerStats})
 		}
 
@@ -72,11 +86,13 @@ func (result ResultsMap) PrintResults() {
 
 		fmt.Printf(
 			"%s[+] Found a total of %d files across %d account(s) and %d containers%s\n",
-			Green, numFiles, numContainers, len(result), Reset,
+			Green, numFiles, numContainers, len(rm.results), Reset,
 		)
 	} else {
 		fmt.Printf("%s[-] No files found.%s\n", Red, Reset)
 	}
+
+	rm.mutex.Unlock()
 }
 
 func ReportResults(writer *bufio.Writer, msgChannel chan Message) {

@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"regexp"
+	"strings"
 )
 
 const (
@@ -38,6 +39,50 @@ func IsValidStorageAccountName(name string) bool {
 	match := REGEXP_ACCOUNT.MatchString(name)
 
 	return match
+}
+
+func FilterValidAccounts(
+	accounts []string,
+	filteredAccounts *[]string,
+	verbose bool,
+) int {
+	removedAccounts := 0
+
+	for idx, account := range accounts {
+		account = strings.Replace(strings.ToLower(account), ".blob.core.windows.net", "", -1)
+		if IsValidStorageAccountName(account) {
+			*filteredAccounts = append(*filteredAccounts, account)
+		} else {
+			if verbose {
+				fmt.Printf("[~][%d] Skipping invalid storage account name '%s'\n", idx, account)
+			}
+			removedAccounts += 1
+		}
+	}
+
+	return removedAccounts
+}
+
+func FilterValidContainers(
+	containers []string,
+	filteredContainers *[]string,
+	verbose bool,
+) int {
+	removedContainers := 0
+
+	for idx, containerName := range containers {
+		containerName = strings.ToLower(containerName)
+		if IsValidContainerName(containerName) {
+			*filteredContainers = append(*filteredContainers, containerName)
+		} else {
+			if verbose {
+				fmt.Printf("[~][%d] Skipping invalid storage account name '%s'\n", idx, containerName)
+			}
+			removedContainers += 1
+		}
+	}
+
+	return removedContainers
 }
 
 func ReadLines(filename string) []string {

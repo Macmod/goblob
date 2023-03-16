@@ -35,6 +35,12 @@ The tool also supports outputting the results to a file using the `-output` opti
 $ ./goblob -accounts accounts.txt -containers wordlists/goblob-folder-names.txt -output results.txt
 ```
 
+If you want to provide accounts to test via `stdin` you can also omit `-accounts` (or the account name) entirely:
+
+```bash
+$ cat accounts.txt | ./goblob
+```
+
 ## Wordlists
 
 Goblob comes bundled with two basic wordlists that can be used with the `-containers` option:
@@ -73,8 +79,9 @@ TODO: Put example here
 Contributions are welcome by [opening an issue](https://github.com/Macmod/goblob/issues/new) or by [submitting a pull request](https://github.com/Macmod/goblob/pulls).
 
 # TODO
-* Check blob domain for NXDOMAIN before trying wordlist to save bandwidth
-* Option to read accounts from stdin
+* Check blob domain for NXDOMAIN before trying wordlist to save bandwidth (maybe)
+* Improve default parameters for better performance
+* Improve wordlists
 
 # License
 The MIT License (MIT)
