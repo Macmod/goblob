@@ -1,12 +1,12 @@
 package core
 
 import (
-	"fmt"
-	"sync"
 	"bytes"
+	"fmt"
+	"github.com/Macmod/goblob/xml"
 	"io"
 	"net/http"
-	"github.com/Macmod/goblob/xml"
+	"sync"
 )
 
 type Message struct {
@@ -15,14 +15,14 @@ type Message struct {
 }
 
 type ContainerScanner struct {
-	HttpClient *http.Client
-	WG *sync.WaitGroup
-	Semaphore chan struct{}
+	HttpClient    *http.Client
+	WG            *sync.WaitGroup
+	Semaphore     chan struct{}
 	OutputChannel chan Message
-	ResultsMap ResultsMap
-	BlobsOnly bool
-	VerboseMode int
-	MaxPages int
+	ResultsMap    ResultsMap
+	BlobsOnly     bool
+	VerboseMode   int
+	MaxPages      int
 }
 
 func (cs ContainerScanner) Scan(account string, containerName string) {

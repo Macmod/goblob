@@ -1,10 +1,10 @@
 package core
 
 import (
-	"fmt"
-	"sort"
 	"bufio"
+	"fmt"
 	"github.com/Macmod/goblob/utils"
+	"sort"
 )
 
 type ResultsMap map[string]ContainerStats

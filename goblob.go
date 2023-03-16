@@ -5,9 +5,9 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
-	"net/http"
 	"strings"
 	"sync"
 	"syscall"
@@ -95,7 +95,7 @@ Y8b d88P
 	if *accountsFilename != "" {
 		accounts = utils.ReadLines(*accountsFilename)
 	} else {
-		accounts = []string{os.Args[1]}	
+		accounts = []string{os.Args[1]}
 	}
 
 	var containers []string = utils.ReadLines(*containersFilename)

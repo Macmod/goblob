@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	ACCOUNT_PATTERN    = "^[a-z0-9]*$"
-	CONTAINER_PATTERN     = "^[a-zA-Z][a-zA-Z0-9-]*$"
-	BLOB_URL_PATTERN = "<Url>([^<]+)"
+	ACCOUNT_PATTERN   = "^[a-z0-9]*$"
+	CONTAINER_PATTERN = "^[a-zA-Z][a-zA-Z0-9-]*$"
+	BLOB_URL_PATTERN  = "<Url>([^<]+)"
 )
 
 var Empty struct{}
