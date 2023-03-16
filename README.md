@@ -43,6 +43,9 @@ Goblob comes bundled with two basic wordlists that can be used with the `-contai
 - [wordlists/goblob-folder-names.small.txt](wordlists/goblob-folder-names.small.txt) - Subset of the default wordlist containing only words that have been found as container names in a real experiment with over 35k distinct storage accounts + words from the default wordlist that are part of the NLTK corpus.
 
 ## Optional Flags
+
+Goblob provides several flags that can be tuned in order to improve the enumeration process:
+
 - `-goroutines=N` - Maximum number of concurrent goroutines to allow (default: `5000`).
 - `-blobs=true` - Report the URL of each blob instead of the URL of the containers (default: `false`).
 - `-verbose=N` - Set verbosity level (default: `1`, min: `0`, max: `3`).
@@ -54,6 +57,14 @@ Goblob comes bundled with two basic wordlists that can be used with the `-contai
 - `-skipssl=true` - Skip SSL verification (default: `false`)
 - `-invertsearch=true` - Enumerate accounts for each container instead of containers for each account (default: `false`)
 
+For instance, if you just want to find publicly exposed containers using large lists of storage accounts and container names, you should use `-maxpages=0` to prevent the goroutines from paginating the results. Then run it again on the set of results you found with `-blobs=true` and `-maxpages=-1` to actually get the URLs of the blobs.
+
+If, on the other hand, you want to test a small list of very popular container names against a large set of storage accounts, you might want to try `-invertsearch=true` with `-maxpages=0`, in order to see the public accounts for each container name instead of the container names for each storage account.
+
+You may also want to try changing `goroutines`, `-timeout` and `-maxidleconns`, `-maxidleconnsperhost` and `-maxconnsperhost` and `-skipssl` in order to best use your bandwidth and find results faster.
+
+Experiment with the flags to find what works best for you ;-)
+
 ## Example
 
 TODO: Put example here
@@ -62,7 +73,6 @@ TODO: Put example here
 Contributions are welcome by [opening an issue](https://github.com/Macmod/goblob/issues/new) or by [submitting a pull request](https://github.com/Macmod/goblob/pulls).
 
 # TODO
-* Improve project structure
 * Check blob domain for NXDOMAIN before trying wordlist to save bandwidth
 * Option to read accounts from stdin
 

@@ -84,7 +84,9 @@ Y8b d88P
 
 	flag.Parse()
 
-	fmt.Println(BANNER)
+	if *verbose > 0 {
+		fmt.Println(BANNER)
+	}
 
 	// Import input from files
 	var accounts []string
@@ -175,10 +177,6 @@ Y8b d88P
 	removedAccounts := 0
 	removedContainers := 0
 
-	if *verbose > 0 {
-		fmt.Printf("[~] Filtering out invalid accounts and containers\n")
-	}
-
 	for idx, account := range accounts {
 		account = strings.Replace(strings.ToLower(account), ".blob.core.windows.net", "", -1)
 		if utils.IsValidStorageAccountName(account) {
@@ -187,6 +185,7 @@ Y8b d88P
 			if *verbose > 1 {
 				fmt.Printf("[~][%d] Skipping invalid storage account name '%s'\n", idx, account)
 			}
+			removedAccounts += 1
 		}
 	}
 
@@ -198,13 +197,31 @@ Y8b d88P
 			if *verbose > 1 {
 				fmt.Printf("[~][%d] Skipping invalid storage account name '%s'\n", idx, containerName)
 			}
+			removedContainers += 1
 		}
 	}
 
+	nContainers := len(filteredContainers)
+	nAccounts := len(filteredAccounts)
+
 	if *verbose > 0 {
 		fmt.Printf(
-			"[~] Ignored %d invalid accounts and %d invalid containers from input\n",
+			"[~] Valid accounts to search: %d\n",
+			nAccounts,
+		)
+
+		fmt.Printf(
+			"[~] Invalid accounts ignored: %d\n",
 			removedAccounts,
+		)
+
+		fmt.Printf(
+			"[~] Valid containers to search: %d\n",
+			nContainers,
+		)
+
+		fmt.Printf(
+			"[~] Invalid containers ignored: %d\n",
 			removedContainers,
 		)
 	}
@@ -213,7 +230,12 @@ Y8b d88P
 	if !*invertSearch {
 		for idx, account := range filteredAccounts {
 			if *verbose > 0 {
-				fmt.Printf("[~][%d] Searching blob containers in storage account '%s'\n", idx, account)
+				fmt.Printf(
+					"[~][%d] Searching %d containers in account '%s'\n",
+					idx,
+					nContainers,
+					account,
+				)
 			}
 
 			for _, containerName := range filteredContainers {
@@ -226,7 +248,12 @@ Y8b d88P
 	} else {
 		for idx, containerName := range filteredContainers {
 			if *verbose > 0 {
-				fmt.Printf("[~][%d] Searching blob containers named '%s'\n", idx, containerName)
+				fmt.Printf(
+					"[~][%d] Searching %d accounts for containers named '%s' \n",
+					idx,
+					nAccounts,
+					containerName,
+				)
 			}
 
 			for _, account := range filteredAccounts {
