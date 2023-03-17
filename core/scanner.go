@@ -1,12 +1,12 @@
 package core
 
 import (
-	"bytes"
 	"fmt"
-	"github.com/Macmod/goblob/xml"
 	"io"
 	"net/http"
 	"sync"
+
+	"github.com/Macmod/goblob/xml"
 )
 
 type Message struct {
@@ -23,7 +23,7 @@ type ContainerScanner struct {
 	blobsOnly     bool
 	verboseMode   int
 	maxPages      int
-	invertSearch bool
+	invertSearch  bool
 }
 
 func (cs *ContainerScanner) Init(
@@ -72,7 +72,8 @@ func (cs *ContainerScanner) ScanContainer(account string, containerName string, 
 			fmt.Printf("%s[-] Error while fetching URL: '%s'%s\n", Red, err, Reset)
 		}
 	} else {
-		defer checkResp.Body.Close()
+		_, _ = io.ReadAll(checkResp.Body)
+		checkResp.Body.Close()
 
 		checkStatusCode := checkResp.StatusCode
 		if checkStatusCode < 400 {
@@ -117,8 +118,9 @@ func (cs *ContainerScanner) ScanContainer(account string, containerName string, 
 					statusCode := resp.StatusCode
 					defer resp.Body.Close()
 
-					resBuf := new(bytes.Buffer)
-					_, err = io.Copy(resBuf, resp.Body)
+					resBuf := make([]byte, resp.ContentLength)
+					resBuf, err = io.ReadAll(resp.Body)
+
 					if err != nil {
 						if cs.verboseMode > 1 {
 							fmt.Printf("%s[-] Error while reading response body: '%s'%s\n", Red, err, Reset)
@@ -128,7 +130,11 @@ func (cs *ContainerScanner) ScanContainer(account string, containerName string, 
 
 					if statusCode < 400 {
 						resultsPage := new(xml.EnumerationResults)
-						resultsPage.LoadXML(resBuf.Bytes())
+						err := resultsPage.LoadXML(resBuf)
+						if err != nil {
+							fmt.Printf("%s[-] Error reading XML data: '%s'%s\n", Red, err, Reset)
+						}
+						resBuf = nil
 
 						blobURLs := resultsPage.BlobURLs()
 						cs.resultsMap.StoreContainerResults(
@@ -149,6 +155,7 @@ func (cs *ContainerScanner) ScanContainer(account string, containerName string, 
 
 						markerCode = resultsPage.NextMarker
 					} else {
+						resBuf = nil
 						if cs.verboseMode > 1 {
 							fmt.Printf(
 								"%s[-] Error while accessing %s: '%s'%s\n",
@@ -169,26 +176,27 @@ func (cs *ContainerScanner) ScanContainer(account string, containerName string, 
 	}
 }
 
-func (cs *ContainerScanner) runDirectScan(accounts[] string, containerNames []string) {
+func (cs *ContainerScanner) runDirectScan(accounts []string, containerNames []string) {
 	nContainers := len(containerNames)
+	nAccounts := len(accounts)
 	doneChan := make(chan struct{})
- 
+
 	for idx, account := range accounts {
 		if cs.verboseMode > 0 {
 			fmt.Printf(
-				"[~][%d] Searching %d containers in account '%s'\n",
-				idx,
+				"[~][%d/%d] Searching %d containers in account '%s'\n",
+				idx+1, nAccounts,
 				nContainers,
 				account,
 			)
 		}
 
 		go func(idx int, account string) {
-			for i := 0; i < len(containerNames); i++ {
+			for i := 0; i < nContainers; i++ {
 				<-doneChan
 			}
 
-			fmt.Printf("[~][%d] Finished searching account '%s'\n", idx, account)
+			fmt.Printf("[~][%d/%d] Finished searching account '%s'\n", idx+1, nAccounts, account)
 		}(idx, account)
 
 		for _, containerName := range containerNames {
@@ -201,25 +209,26 @@ func (cs *ContainerScanner) runDirectScan(accounts[] string, containerNames []st
 }
 
 func (cs *ContainerScanner) runInverseScan(accounts []string, containerNames []string) {
+	nContainers := len(containerNames)
 	nAccounts := len(accounts)
 	doneChan := make(chan struct{})
 
 	for idx, containerName := range containerNames {
 		if cs.verboseMode > 0 {
 			fmt.Printf(
-				"[~][%d] Searching %d accounts for containers named '%s' \n",
-				idx,
+				"[~][%d/%d] Searching %d accounts for containers named '%s' \n",
+				idx+1, nContainers,
 				nAccounts,
 				containerName,
 			)
 		}
 
 		go func(idx int, containerName string) {
-			for i := 0; i < len(accounts); i++ {
+			for i := 0; i < nAccounts; i++ {
 				<-doneChan
 			}
 
-			fmt.Printf("[~][%d] Finished searching containers named '%s'\n", idx, containerName)
+			fmt.Printf("[~][%d/%d] Finished searching containers named '%s'\n", idx+1, nContainers, containerName)
 		}(idx, containerName)
 
 		for _, account := range accounts {

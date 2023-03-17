@@ -3,14 +3,14 @@ package core
 import (
 	"bufio"
 	"fmt"
-	"sync"
 	"github.com/Macmod/goblob/utils"
 	"sort"
+	"sync"
 )
 
 type ResultsMap struct {
 	results map[string]ContainerStats
-	mutex sync.Mutex
+	mutex   sync.Mutex
 }
 
 type AccountResult struct {

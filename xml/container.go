@@ -33,11 +33,9 @@ type EnumerationResults struct {
 	NextMarker    string `xml:"NextMarker"`
 }
 
-func (e *EnumerationResults) LoadXML(xmlData []byte) {
+func (e *EnumerationResults) LoadXML(xmlData []byte) error {
 	err := xml.Unmarshal(xmlData, e)
-	if err != nil {
-		panic(err)
-	}
+	return err
 }
 
 func (e *EnumerationResults) BlobURLs() []string {
