@@ -30,7 +30,9 @@ analysis
 analytics
 anatomy
 android
+api
 app
+appdata
 application
 applications
 apps
@@ -92,6 +94,7 @@ board
 boo
 book
 booking
+books
 bootstrap
 bottle
 box
@@ -211,6 +214,7 @@ dance
 dash
 dashboard
 data
+datasets
 dauphine
 day
 default
@@ -260,6 +264,7 @@ edit
 edition
 editor
 editorial
+edu
 education
 elearning
 ellen
@@ -277,6 +282,7 @@ enterprise
 episodes
 eric
 error
+errors
 eshop
 event
 events
@@ -329,6 +335,7 @@ fusion
 gain
 galleries
 gallery
+games
 garage
 garden
 gate
@@ -406,6 +413,7 @@ java
 javascript
 jazz
 jess
+jobs
 journal
 journey
 jurel
@@ -449,6 +457,7 @@ logos
 logs
 loka
 loop
+loops
 lower
 mac
 magazine
@@ -478,6 +487,7 @@ matrix
 max
 mayor
 media
+mediafiles
 medias
 medical
 medication
@@ -522,6 +532,7 @@ office
 oil
 old
 one
+online
 open
 order
 orders
@@ -601,6 +612,7 @@ read
 reading
 realty
 receipts
+recipes
 recordings
 red
 redesign
@@ -633,6 +645,7 @@ room
 root
 rota
 round
+rules
 run
 russell
 saguaro
@@ -718,6 +731,7 @@ strong
 studio
 stuff
 styles
+stylesheets
 sublet
 submit
 success
@@ -763,6 +777,7 @@ tour
 tourism
 track
 trade
+trailers
 training
 transfer
 trash
