@@ -67,13 +67,13 @@ For instance, if you just want to find publicly exposed containers using large l
 
 If, on the other hand, you want to test a small list of very popular container names against a large set of storage accounts, you might want to try `-invertsearch=true` with `-maxpages=0`, in order to see the public accounts for each container name instead of the container names for each storage account.
 
-You may also want to try changing `goroutines`, `-timeout` and `-maxidleconns`, `-maxidleconnsperhost` and `-maxconnsperhost` and `-skipssl` in order to best use your bandwidth and find results faster.
+You may also want to try changing `-goroutines`, `-timeout` and `-maxidleconns`, `-maxidleconnsperhost` and `-maxconnsperhost` and `-skipssl` in order to best use your bandwidth and find results faster.
 
 Experiment with the flags to find what works best for you ;-)
 
 ## Example
 
-TODO: Put example here
+
 
 # Contributing
 Contributions are welcome by [opening an issue](https://github.com/Macmod/goblob/issues/new) or by [submitting a pull request](https://github.com/Macmod/goblob/pulls).

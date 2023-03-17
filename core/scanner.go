@@ -118,7 +118,14 @@ func (cs *ContainerScanner) ScanContainer(account string, containerName string, 
 					statusCode := resp.StatusCode
 					defer resp.Body.Close()
 
-					resBuf := make([]byte, resp.ContentLength)
+					var preallocBufferSize int64
+					if resp.ContentLength >= 0 {
+						preallocBufferSize = resp.ContentLength
+					} else {
+						preallocBufferSize = 128
+					}
+
+					var resBuf = make([]byte, preallocBufferSize)
 					resBuf, err = io.ReadAll(resp.Body)
 
 					if err != nil {
