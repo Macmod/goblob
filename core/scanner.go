@@ -72,7 +72,7 @@ func (cs *ContainerScanner) ScanContainer(account string, containerName string, 
 			fmt.Printf("%s[-] Error while fetching URL: '%s'%s\n", Red, err, Reset)
 		}
 	} else {
-		_, _ = io.ReadAll(checkResp.Body)
+		io.Copy(io.Discard, checkResp.Body)
 		checkResp.Body.Close()
 
 		checkStatusCode := checkResp.StatusCode
