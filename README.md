@@ -73,7 +73,7 @@ Experiment with the flags to find what works best for you ;-)
 
 ## Example
 
-
+[![asciicast](https://asciinema.org/a/568038.svg)](https://asciinema.org/a/568038)
 
 # Contributing
 Contributions are welcome by [opening an issue](https://github.com/Macmod/goblob/issues/new) or by [submitting a pull request](https://github.com/Macmod/goblob/pulls).
@@ -82,6 +82,7 @@ Contributions are welcome by [opening an issue](https://github.com/Macmod/goblob
 * Check blob domain for NXDOMAIN before trying wordlist to save bandwidth (maybe)
 * Improve default parameters for better performance
 * Improve wordlists
+* Guess blob URLs when `-blobs=true` returns the name but doesn't return the URL of the blobs
 
 # License
 The MIT License (MIT)
