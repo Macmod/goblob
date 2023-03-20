@@ -56,7 +56,7 @@ func (e *EnumerationResults) BlobURLs() []string {
 			if strings.HasPrefix(e.ContainerName, "https://") {
 				blobUrl = fmt.Sprintf("%s/%s", e.ContainerName, blob.Name)
 			} else if strings.HasPrefix(e.ServiceEndpoint, "https://") {
-				blobUrl = fmt.Sprintf("%s/%s", e.ServiceEndpoint, blob.Name)
+				blobUrl = fmt.Sprintf("%s/%s/%s", e.ServiceEndpoint, e.ContainerName, blob.Name)
 			} else {
 				blobUrl = ""
 			}
