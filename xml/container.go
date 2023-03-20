@@ -3,6 +3,7 @@ package xml
 import (
 	"encoding/xml"
 	"fmt"
+	"strings"
 )
 
 type Properties struct {
@@ -29,6 +30,7 @@ type Blobs struct {
 }
 
 type EnumerationResults struct {
+	ServiceEndpoint string `xml:"ServiceEndpoint,attr"`
 	ContainerName string `xml:"ContainerName,attr"`
 	Blobs         Blobs  `xml:"Blobs"`
 	NextMarker    string `xml:"NextMarker"`
@@ -44,16 +46,21 @@ func (e *EnumerationResults) BlobURLs() []string {
 	var blobUrl string
 
 	for _, blob := range e.Blobs.Blob {
+		// The logic here is that if no URL can be identified,
+		// then it will append an empty blob URL to the list
+		// to let the user know that a blob was found
+		// but no URL could be extracted
 		if blob.Url != "" {
 			blobUrl = blob.Url
 		} else if blob.Name != "" {
-			blobUrl = fmt.Sprintf("%s/%s", e.ContainerName, blob.Name)
+			if strings.HasPrefix(e.ContainerName, "https://") {
+				blobUrl = fmt.Sprintf("%s/%s", e.ContainerName, blob.Name)
+			} else if strings.HasPrefix(e.ServiceEndpoint, "https://") {
+				blobUrl = fmt.Sprintf("%s/%s", e.ServiceEndpoint, blob.Name)
+			} else {
+				blobUrl = ""
+			}
 		} else {
-			// This is an edge case kept in the code for awareness.
-			// In case it happens for some reason, the logic here is that
-			// if no URL can be identified, then it will append an empty blob URL
-			// to the list to let the user know that there a blob was found
-			// but no URL could be extracted
 			blobUrl = ""
 		}
 
