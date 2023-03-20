@@ -2,6 +2,7 @@ package xml
 
 import (
 	"encoding/xml"
+	"fmt"
 )
 
 type Properties struct {
@@ -40,9 +41,23 @@ func (e *EnumerationResults) LoadXML(xmlData []byte) error {
 
 func (e *EnumerationResults) BlobURLs() []string {
 	var urls []string
+	var blobUrl string
 
 	for _, blob := range e.Blobs.Blob {
-		urls = append(urls, blob.Url)
+		if blob.Url != "" {
+			blobUrl = blob.Url
+		} else if blob.Name != "" {
+			blobUrl = fmt.Sprintf("%s/%s", e.ContainerName, blob.Name)
+		} else {
+			// This is an edge case kept in the code for awareness.
+			// In case it happens for some reason, the logic here is that
+			// if no URL can be identified, then it will append an empty blob URL
+			// to the list to let the user know that there a blob was found
+			// but no URL could be extracted
+			blobUrl = ""
+		}
+
+		urls = append(urls, blobUrl)
 	}
 
 	return urls

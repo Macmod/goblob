@@ -43,9 +43,9 @@ $ cat accounts.txt | ./goblob
 
 ## Wordlists
 
-Goblob comes bundled with two basic wordlists that can be used with the `-containers` option:
+Goblob comes bundled with basic wordlists that can be used with the `-containers` option:
 
-- [wordlists/goblob-folder-names.txt](wordlists/goblob-folder-names.txt) (default) - Adaptation from koaj's [aws-s3-bucket-wordlist](https://github.com/koaj/aws-s3-bucket-wordlist/blob/master/list.txt) - a wordlist containing generic folder names that are likely to be used as container names.
+- [wordlists/goblob-folder-names.txt](wordlists/goblob-folder-names.txt) (default) - Adaptation from koaj's [aws-s3-bucket-wordlist](https://github.com/koaj/aws-s3-bucket-wordlist/blob/master/list.txt) - a wordlist containing generic bucket names that are likely to be used as container names.
 - [wordlists/goblob-folder-names.small.txt](wordlists/goblob-folder-names.small.txt) - Subset of the default wordlist containing only words that have been found as container names in a real experiment with over 35k distinct storage accounts + words from the default wordlist that are part of the NLTK corpus.
 - [wordlists/goblob-folder-names.micro.txt](wordlists/goblob-folder-names.micro.txt) - Subset of the small wordlist containing only words that have been found as container names in a real experiment with over 35k distinct storage accounts.
 
@@ -82,7 +82,6 @@ Contributions are welcome by [opening an issue](https://github.com/Macmod/goblob
 # TODO
 * Check blob domain for NXDOMAIN before trying wordlist to save bandwidth (maybe)
 * Improve default parameters for better performance
-* Guess blob URLs when `-blobs=true` returns the name but doesn't return the URL of the blobs
 
 # License
 The MIT License (MIT)
