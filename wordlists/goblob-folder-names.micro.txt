@@ -248,6 +248,7 @@ policies
 pop
 poster
 presentation
+presentations
 press
 preview
 private
@@ -279,6 +280,7 @@ resized
 resources
 results
 robot
+roku
 root
 rules
 run
@@ -293,6 +295,7 @@ script
 scripts
 sds
 secure
+security
 seo
 services
 share
@@ -320,6 +323,7 @@ styles
 stylesheets
 support
 survey
+tanaka
 temp
 templates
 temporal
@@ -327,6 +331,7 @@ terms
 test
 test1
 test2
+test5
 teste
 testimonials
 testing

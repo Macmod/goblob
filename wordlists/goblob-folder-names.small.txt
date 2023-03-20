@@ -582,6 +582,7 @@ prep
 prerelease
 presence
 presentation
+presentations
 press
 preview
 primary
@@ -641,6 +642,7 @@ review
 road
 robot
 rock
+roku
 room
 root
 rota
@@ -744,6 +746,7 @@ system
 tab
 table
 talk
+tanaka
 tap
 task
 team
@@ -758,6 +761,7 @@ terms
 test
 test1
 test2
+test5
 teste
 testimonials
 testing
