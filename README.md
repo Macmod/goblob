@@ -87,7 +87,7 @@ Contributions are welcome by [opening an issue](https://github.com/Macmod/goblob
 
 An interesting visualization of popular container names found in my experiments with the tool:
 
-[wordcloud.png](wordcloud.png)
+![wordcloud.png](wordcloud.png)
 
 # License
 The MIT License (MIT)
