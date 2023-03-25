@@ -89,9 +89,9 @@ An interesting visualization of popular container names found in my experiments 
 
 ![wordcloud.png](wordcloud.png)
 
-If you want to know more about the topic, take a look at my article:
+If you want to know more about my experiments and the subject in general, take a look at my article:
 
-[FireShellSecurity Team - The Dangers of Exposed Azure Blobs](https://fireshellsecurity.team/dangers-of-exposed-blobs/)
+* [FireShellSecurity Team - The Dangers of Exposed Azure Blobs](https://fireshellsecurity.team/dangers-of-exposed-blobs/)
 
 # License
 The MIT License (MIT)
